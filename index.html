@@ -516,7 +516,6 @@
     el.style.borderColor = '#F5A623';
     el.style.background = '#FFFBF0';
     el.style.boxShadow = '0 0 0 3px rgba(245,166,35,0.15)';
-    // Add warning label if not already there
     const existing = document.getElementById('warn-' + fieldId);
     if (!existing) {
       const warn = document.createElement('div');
@@ -525,6 +524,18 @@
       warn.textContent = '⚠ ' + message;
       el.parentNode.appendChild(warn);
     }
+    // Clear amber highlight when user starts editing
+    const clearHighlight = () => {
+      el.style.borderColor = '';
+      el.style.background = '';
+      el.style.boxShadow = '';
+      const w = document.getElementById('warn-' + fieldId);
+      if (w) w.remove();
+      el.removeEventListener('input', clearHighlight);
+      el.removeEventListener('change', clearHighlight);
+    };
+    el.addEventListener('input', clearHighlight);
+    el.addEventListener('change', clearHighlight);
   }
 
   // ── Load previous request by ID ────────────────────────
