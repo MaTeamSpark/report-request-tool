@@ -113,6 +113,21 @@
 
 <div class="form-container">
 
+  <!-- Request ID Lookup -->
+  <div class="card" id="lookupCard" style="border-left: 4px solid var(--brand); margin-bottom:1rem;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">Resubmitting a previous request?</div>
+        <div style="font-size:12px;color:var(--text-muted);font-family:monospace;">Enter your Request ID to pre-fill all your previous inputs</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0;">
+        <input type="text" id="lookupId" placeholder="e.g. REQ-1781033511939" style="width:240px;font-family:monospace;font-size:13px;" onkeydown="if(event.key==='Enter') loadPreviousRequest()" />
+        <button type="button" onclick="loadPreviousRequest()" style="padding:9px 18px;background:var(--brand);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">Load Request</button>
+      </div>
+    </div>
+    <div id="lookupStatus" style="display:none;margin-top:10px;font-size:13px;padding:8px 12px;border-radius:var(--radius-sm);"></div>
+  </div>
+
   <!-- Universal -->
   <div class="card">
     <div class="card-header">
@@ -494,7 +509,121 @@
     })();
   }
 
-  // ── Submit ─────────────────────────────────────────
+  // ── Field highlight for modifications ─────────────────
+  function highlightField(fieldId, message) {
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    el.style.borderColor = '#F5A623';
+    el.style.background = '#FFFBF0';
+    el.style.boxShadow = '0 0 0 3px rgba(245,166,35,0.15)';
+    // Add warning label if not already there
+    const existing = document.getElementById('warn-' + fieldId);
+    if (!existing) {
+      const warn = document.createElement('div');
+      warn.id = 'warn-' + fieldId;
+      warn.style.cssText = 'font-size:12px;color:#7A5700;background:#FFF8E7;border:1px solid #F5DFA0;border-radius:4px;padding:5px 10px;margin-top:5px;font-weight:600;';
+      warn.textContent = '⚠ ' + message;
+      el.parentNode.appendChild(warn);
+    }
+  }
+
+  // ── Load previous request by ID ────────────────────────
+  async function loadPreviousRequest() {
+    const reqId = document.getElementById('lookupId').value.trim();
+    const statusEl = document.getElementById('lookupStatus');
+    if (!reqId) return;
+
+    statusEl.style.display = 'block';
+    statusEl.style.background = '#F8F5F0';
+    statusEl.style.color = '#555';
+    statusEl.textContent = 'Loading request...';
+
+    try {
+      const res = await fetch(`${FLASK_API.replace('/submit-request', '')}/request/${reqId}`);
+      if (!res.ok) throw new Error('not found');
+      const r = await res.json();
+
+      // Pre-fill all fields
+      document.getElementById('userName').value = r.user?.name || '';
+      document.getElementById('userEmail').value = r.user?.email || '';
+      document.getElementById('reportName').value = r.reportName || '';
+      document.getElementById('landingUrl').value = r.landingUrl || '';
+
+      // Chapter scope
+      if (r.chapterScope) {
+        document.getElementById('chapterScope').value = r.chapterScope;
+        toggleChapterUrls(document.getElementById('chapterScope'));
+      }
+      if (r.chapterUrls?.length) document.getElementById('chapterUrls').value = r.chapterUrls.join('\n');
+
+      // Period
+      if (r.period?.type === 'custom') {
+        setPeriod(document.querySelector('.period-btn:last-child'), 'custom');
+        document.getElementById('startDate').value = r.period.startDate || '';
+        document.getElementById('endDate').value = r.period.endDate || '';
+      } else {
+        const days = r.period?.days?.toString() || '30';
+        const btn = [...document.querySelectorAll('.period-btn')].find(b => b.textContent.includes(days));
+        if (btn) setPeriod(btn, days);
+      }
+
+      // Data sources
+      document.querySelectorAll('.checkbox-group input').forEach(cb => {
+        cb.checked = (r.dataSources || []).includes(cb.value);
+      });
+
+      // YoY
+      const yoyEl = document.getElementById('yoyToggle');
+      yoyEl.checked = r.yoy?.enabled || false;
+      toggleYoY(yoyEl);
+      if (r.yoy?.priorYearUrls?.length) document.getElementById('yoyUrls').value = r.yoy.priorYearUrls.join('\n');
+
+      // Segments
+      tags.seg = r.segments || [];
+      renderTags('seg');
+
+      // Slide 1
+      if (r.slide1?.trafficWindow) document.getElementById('trafficWindow').value = r.slide1.trafficWindow;
+      if (r.slide1?.chapterCount) document.getElementById('chapterCount').value = r.slide1.chapterCount;
+
+      // Slide 2
+      if (r.slide2?.accountList?.length) document.getElementById('accountList').value = r.slide2.accountList.join('\n');
+      tags.seg2 = r.slide2?.segmentLabels || [];
+      renderTags('seg2');
+
+      // Highlight flagged fields if any
+      const flagged = r.flaggedFields || [];
+      const fieldMap = {
+        'Report name / Landing URL': ['reportName', 'landingUrl'],
+        'Analysis period / dates': ['startDate', 'endDate'],
+        'Data sources': [],
+        'Chapter scope / URLs': ['chapterScope', 'chapterUrls'],
+        'YoY comparison / prior year URLs': ['yoyUrls'],
+        'Industry / segment split': ['segInput'],
+        'Benchmark reports (Slide 1)': [],
+        'Priority account list (Slide 2)': ['accountList'],
+        'Segment labels (Slide 2)': ['seg2Input']
+      };
+      flagged.forEach(field => {
+        const ids = fieldMap[field] || [];
+        ids.forEach(id => highlightField(id, 'Please review this field'));
+      });
+
+      statusEl.style.background = '#E1F5EE';
+      statusEl.style.color = '#0F6E56';
+      statusEl.textContent = flagged.length
+        ? `✓ Request loaded — ${flagged.length} field(s) highlighted for review`
+        : '✓ Request loaded successfully — review and resubmit';
+
+      // Scroll to form
+      document.getElementById('lookupCard').scrollIntoView({ behavior: 'smooth' });
+
+    } catch {
+      statusEl.style.background = '#FAECE7';
+      statusEl.style.color = '#993C1D';
+      statusEl.textContent = '⚠ Request ID not found. Please check and try again.';
+    }
+  }
   async function submitForm() {
     document.getElementById('statusBox').style.display = 'none';
     document.getElementById('progressWrap').style.display = 'none';
