@@ -513,9 +513,12 @@
   function highlightField(fieldId, message) {
     const el = document.getElementById(fieldId);
     if (!el) return;
-    el.style.borderColor = '#F5A623';
-    el.style.background = '#FFFBF0';
-    el.style.boxShadow = '0 0 0 3px rgba(245,166,35,0.15)';
+    const isDropdown = el.tagName === 'SELECT';
+    if (!isDropdown) {
+      el.style.borderColor = '#F5A623';
+      el.style.background = '#FFFBF0';
+      el.style.boxShadow = '0 0 0 3px rgba(245,166,35,0.15)';
+    }
     const existing = document.getElementById('warn-' + fieldId);
     if (!existing) {
       const warn = document.createElement('div');
@@ -526,9 +529,11 @@
     }
     // Clear amber highlight when user starts editing
     const clearHighlight = () => {
-      el.style.borderColor = '';
-      el.style.background = '';
-      el.style.boxShadow = '';
+      if (!isDropdown) {
+        el.style.borderColor = '';
+        el.style.background = '';
+        el.style.boxShadow = '';
+      }
       const w = document.getElementById('warn-' + fieldId);
       if (w) w.remove();
       el.removeEventListener('input', clearHighlight);
@@ -605,15 +610,15 @@
       // Highlight flagged fields if any
       const flagged = r.flaggedFields || [];
       const fieldMap = {
-        'Report name / Landing URL': ['reportName', 'landingUrl'],
-        'Analysis period / dates': ['startDate', 'endDate'],
-        'Data sources': [],
-        'Chapter scope / URLs': ['chapterScope', 'chapterUrls'],
-        'YoY comparison / prior year URLs': ['yoyUrls'],
-        'Industry / segment split': ['segInput'],
-        'Benchmark reports (Slide 1)': [],
-        'Priority account list (Slide 2)': ['accountList'],
-        'Segment labels (Slide 2)': ['seg2Input']
+        'Report name':                        ['reportName'],
+        'Landing page URL':                   ['landingUrl'],
+        'Chapter URLs':                       ['chapterUrls'],
+        'Analysis period (custom dates)':     ['startDate', 'endDate'],
+        'Prior year URLs (YoY)':              ['yoyUrls'],
+        'Industry / segment split':           ['segInput'],
+        'Benchmark report names & traffic':   [],
+        'Priority account list (Slide 2)':    ['accountList'],
+        'Segment labels (Slide 2)':           ['seg2Input']
       };
       flagged.forEach(field => {
         const ids = fieldMap[field] || [];
