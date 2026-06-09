@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Report Request — Marketing Analytics</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brand: #534AB7;
+    --brand-dark: #3C3489;
+    --brand-light: #EEEDFE;
+    --text-primary: #1a1a1a;
+    --text-secondary: #555;
+    --text-muted: #888;
+    --border: #e0dfe8;
+    --border-focus: #534AB7;
+    --bg: #f5f4fb;
+    --bg-card: #ffffff;
+    --bg-input: #fafafa;
+    --success: #0F6E56;
+    --success-bg: #E1F5EE;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .page-header {
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo-mark {
+    width: 40px; height: 40px;
+    background: var(--brand);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-mark svg { width: 22px; height: 22px; fill: white; }
+  .page-header h1 { font-size: 20px; font-weight: 600; color: var(--text-primary); }
+  .page-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+  .form-container { max-width: 700px; margin: 0 auto; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.875rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-icon {
+    width: 32px; height: 32px;
+    background: var(--brand-light);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .card-header h2 {
+    font-size: 14px; font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+  }
+  .card-header span {
+    font-size: 12px; color: var(--text-muted);
+    margin-left: auto;
+    background: var(--bg);
+    padding: 2px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  .field { margin-bottom: 1.1rem; }
+  .field:last-child { margin-bottom: 0; }
+
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+  label.field-label .req { color: #D85A30; margin-left: 2px; }
+  .field-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  input[type="text"],
+  input[type="url"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--border-focus);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(83,74,183,0.1);
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  input[type="file"] {
+    padding: 8px 12px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-input);
+    width: 100%;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  input[type="file"]:focus { border-color: var(--border-focus); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  .period-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .period-btn {
+    padding: 7px 16px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .period-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .period-btn.active {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: white;
+    font-weight: 500;
+  }
+  .custom-dates {
+    display: none;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .custom-dates.show { display: grid; grid-template-columns: 1fr 1fr; }
+
+  .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cb-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--bg-input);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .cb-pill:has(input:checked) {
+    background: var(--brand-light);
+    border-color: var(--brand);
+    color: var(--brand);
+    font-weight: 500;
+  }
+  .cb-pill input { accent-color: var(--brand); width: 13px; height: 13px; }
+
+  .toggle-row {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .toggle-info { display: flex; flex-direction: column; }
+  .toggle-info strong { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+  .toggle-info small { font-size: 12px; color: var(--text-muted); }
+  .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0;
+    background: #d0cfe8;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--brand); }
+  .toggle-track::before {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    left: 3px; top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle input:checked + .toggle-track::before { transform: translateX(18px); }
+  .yoy-extra { display: none; margin-top: 10px; }
+  .yoy-extra.show { display: block; }
+
+  .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 0; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--brand-light);
+    color: var(--brand-dark);
+    border: 1px solid #AFA9EC;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .tag button {
+    background: none; border: none; cursor: pointer;
+    color: var(--brand);
+    font-size: 16px; line-height: 1;
+    padding: 0 2px;
+    display: flex; align-items: center;
+  }
+  .tag-input-row { display: flex; gap: 8px; }
+  .tag-input-row input { flex: 1; }
+  .tag-add-btn {
+    padding: 9px 16px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .tag-add-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+  .benchmark-wrap { overflow-x: auto; }
+  table.bench {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.bench th {
+    text-align: left;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+  }
+  table.bench td { padding: 5px 6px; }
+  table.bench input { padding: 7px 10px; font-size: 13px; }
+  .remove-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 18px;
+    padding: 2px 8px; line-height: 1;
+    transition: color 0.15s;
+  }
+  .remove-btn:hover { color: #D85A30; }
+  .add-row-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 10px;
+    background: none; border: none; cursor: pointer;
+    font-size: 13px; color: var(--brand);
+    font-family: inherit;
+    padding: 4px 0;
+  }
+  .add-row-btn:hover { text-decoration: underline; }
+
+  .submit-area { margin-top: 1.5rem; }
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--brand);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .submit-btn:hover { background: var(--brand-dark); }
+  .submit-btn:active { transform: scale(0.99); }
+  .submit-btn svg { width: 18px; height: 18px; fill: white; }
+
+  .status-box {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius);
+    border: 1px solid;
+    font-size: 14px;
+  }
+  .status-box.success {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: var(--success-bg);
+    border-color: #9FE1CB;
+    color: var(--success);
+  }
+  .status-box.error {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #FAECE7;
+    border-color: #F5C4B3;
+    color: #993C1D;
+  }
+  .status-icon { font-size: 20px; flex-shrink: 0; }
+
+  .spinner {
+    display: none;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .progress-wrap { display: none; margin-top: 1rem; }
+  .progress-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+  .progress-bar-bg {
+    height: 6px; background: var(--border);
+    border-radius: 6px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; width: 0%;
+    background: var(--brand);
+    border-radius: 6px;
+    transition: width 0.4s ease;
+  }
+
+  .download-area { display: none; margin-top: 1rem; }
+  .dl-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: white;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    font-family: inherit;
+    transition: all 0.15s;
+    margin-right: 8px;
+    margin-top: 6px;
+  }
+  .dl-btn:hover { border-color: var(--brand); color: var(--brand); }
+  .dl-btn svg { width: 16px; height: 16px; }
+
+  @media (max-width: 600px) {
+    .row2, .row3 { grid-template-columns: 1fr; }
+    body { padding: 1rem 0.75rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="logo-mark">
+    <svg viewBox="0 0 24 24"><path d="M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 3h2v-2h2v2h2v2h-2v2h-2v-2h-2v-2z"/></svg>
+  </div>
+  <div>
+    <h1>Report request</h1>
+    <p>Marketing Analytics · bain.com performance reporting</p>
+  </div>
+</div>
+
+<div class="form-container">
+
+  <!-- Universal -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⚙️</div>
+      <h2>Universal inputs</h2>
+      <span>Required for all slides</span>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Report name <span class="req">*</span></label>
+      <input type="text" id="reportName" placeholder="e.g. Global Payments Report 2025" />
+    </div>
+
+    <div class="field">
+      <label class="field-label">Primary landing page URL <span class="req">*</span></label>
+      <input type="url" id="landingUrl" placeholder="https://www.bain.com/insights/..." />
+    </div>
+
+    <div class="field">
+      <label class="field-label">Chapter scope</label>
+      <select id="chapterScope" onchange="toggleChapterUrls(this)">
+        <option value="all">All chapters</option>
+        <option value="specific">Specific chapters only</option>
+        <option value="landing_only">Landing page only (no chapters)</option>
+      </select>
+    </div>
+
+    <div class="field" id="chapterUrlField" style="display:none;">
+      <label class="field-label">Chapter URLs</label>
+      <textarea id="chapterUrls" placeholder="One URL per line&#10;https://www.bain.com/insights/.../chapter-1&#10;https://www.bain.com/insights/.../chapter-2"></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Analysis period <span class="req">*</span></label>
+      <div class="period-group">
+        <button type="button" class="period-btn active" onclick="setPeriod(this,'30')">Last 30 days</button>
+        <button type="button" class="period-btn" onclick="setPeriod(this,'60')">Last 60 days</button>
+        <button type="button" class="period-btn" onclick="setPeriod(this,'90')">Last 90 days</button>
+        <button type="button" class="period-btn" onclick="setPeriod(this,'custom')">Custom range</button>
+      </div>
+      <input type="hidden" id="periodValue" value="30" />
+      <div class="custom-dates" id="customDates">
+        <div class="field" style="margin-bottom:0;">
+          <label class="field-label">Start date</label>
+          <input type="date" id="startDate" />
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label class="field-label">End date</label>
+          <input type="date" id="endDate" />
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Data sources <span class="req">*</span></label>
+      <div class="checkbox-group">
+        <label class="cb-pill"><input type="checkbox" value="GA" checked /> Google Analytics</label>
+        <label class="cb-pill"><input type="checkbox" value="Marketo" /> Marketo</label>
+        <label class="cb-pill"><input type="checkbox" value="LinkedIn" /> LinkedIn</label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">YoY comparison</label>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <strong>Compare with prior year</strong>
+          <small>Uses the same time window from the previous year</small>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="yoyToggle" onchange="toggleYoY(this)" />
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+      <div class="yoy-extra" id="yoyExtra">
+        <label class="field-label" style="margin-top:10px;">Prior year URLs (one per line)</label>
+        <textarea id="yoyUrls" placeholder="https://www.bain.com/insights/.../2024-report"></textarea>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Industry / segment split for bar charts</label>
+      <div class="tag-container" id="segTags"></div>
+      <div class="tag-input-row">
+        <input type="text" id="segInput" placeholder="e.g. Financial Services" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('seg');}" />
+        <button type="button" class="tag-add-btn" onclick="addTag('seg')">+ Add segment</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 1 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📊</div>
+      <h2>Slide 1 — Traffic & web analytics</h2>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label class="field-label">Traffic window</label>
+        <select id="trafficWindow">
+          <option value="30">30 days from launch (default)</option>
+          <option value="60">60 days from launch</option>
+          <option value="90">90 days from launch</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Chapter count</label>
+        <input type="number" id="chapterCount" placeholder="e.g. 12" min="1" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Benchmark reports</label>
+      <p class="field-hint" style="margin-bottom:10px;">Add comparable reports with 30-day traffic for benchmarking context.</p>
+      <div class="benchmark-wrap">
+        <table class="bench">
+          <thead>
+            <tr>
+              <th style="width:55%">Report name</th>
+              <th style="width:35%">30-day traffic</th>
+              <th style="width:10%"></th>
+            </tr>
+          </thead>
+          <tbody id="benchmarkBody">
+            <tr>
+              <td><input type="text" placeholder="Report name" /></td>
+              <td><input type="number" placeholder="e.g. 4500" min="0" /></td>
+              <td><button type="button" class="remove-btn" onclick="removeRow(this)" title="Remove">×</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button type="button" class="add-row-btn" onclick="addBenchmarkRow()">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M8 2a1 1 0 0 1 1 1v4h4a1 1 0 0 1 0 2H9v4a1 1 0 0 1-2 0V9H3a1 1 0 0 1 0-2h4V3a1 1 0 0 1 1-1z"/></svg>
+        Add benchmark
+      </button>
+    </div>
+  </div>
+
+  <!-- Slide 2 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🏢</div>
+      <h2>Slide 2 — Account reach overview</h2>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Priority account list</label>
+      <p class="field-hint" style="margin-bottom:8px;">Paste company names below, or upload a CSV/Excel file.</p>
+      <textarea id="accountList" placeholder="Company A&#10;Company B&#10;Company C" style="min-height:100px;"></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Or upload account list</label>
+      <input type="file" id="accountFile" accept=".csv,.xlsx,.xls" />
+      <p class="field-hint">Accepted: .csv, .xlsx, .xls</p>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Segment label names for bar chart</label>
+      <div class="tag-container" id="seg2Tags"></div>
+      <div class="tag-input-row">
+        <input type="text" id="seg2Input" placeholder="e.g. Healthcare" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('seg2');}" />
+        <button type="button" class="tag-add-btn" onclick="addTag('seg2')">+ Add label</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="submit-area">
+    <button type="button" class="submit-btn" id="submitBtn" onclick="submitForm()">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <span id="submitLabel">Generate report</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label" id="progressLabel">Connecting to server...</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+    </div>
+
+    <div class="status-box" id="statusBox"></div>
+    <div class="download-area" id="downloadArea"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────
+  const tags = { seg: [], seg2: [] };
+
+  // ── Period selector ────────────────────────────────
+  function setPeriod(btn, val) {
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('periodValue').value = val;
+    document.getElementById('customDates').classList.toggle('show', val === 'custom');
+  }
+
+  // ── Chapter URL toggle ─────────────────────────────
+  function toggleChapterUrls(sel) {
+    document.getElementById('chapterUrlField').style.display = sel.value === 'specific' ? 'block' : 'none';
+  }
+
+  // ── YoY toggle ─────────────────────────────────────
+  function toggleYoY(el) {
+    document.getElementById('yoyExtra').classList.toggle('show', el.checked);
+  }
+
+  // ── Tags ───────────────────────────────────────────
+  function addTag(key) {
+    const inputId = key === 'seg' ? 'segInput' : 'seg2Input';
+    const inp = document.getElementById(inputId);
+    const val = inp.value.trim();
+    if (!val || tags[key].includes(val)) { inp.value = ''; return; }
+    tags[key].push(val);
+    renderTags(key);
+    inp.value = '';
+  }
+
+  function removeTag(key, i) {
+    tags[key].splice(i, 1);
+    renderTags(key);
+  }
+
+  function renderTags(key) {
+    const containerId = key === 'seg' ? 'segTags' : 'seg2Tags';
+    const c = document.getElementById(containerId);
+    c.innerHTML = tags[key].map((t, i) =>
+      `<span class="tag">${t}<button type="button" onclick="removeTag('${key}',${i})" aria-label="Remove ${t}">×</button></span>`
+    ).join('');
+  }
+
+  // ── Benchmark table ────────────────────────────────
+  function addBenchmarkRow() {
+    const tbody = document.getElementById('benchmarkBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" placeholder="Report name" /></td>
+      <td><input type="number" placeholder="e.g. 4500" min="0" /></td>
+      <td><button type="button" class="remove-btn" onclick="removeRow(this)" title="Remove">×</button></td>`;
+    tbody.appendChild(tr);
+  }
+
+  function removeRow(btn) {
+    const tbody = document.getElementById('benchmarkBody');
+    if (tbody.querySelectorAll('tr').length > 1) btn.closest('tr').remove();
+  }
+
+  // ── Progress simulation ────────────────────────────
+  function simulateProgress(stages) {
+    const wrap = document.getElementById('progressWrap');
+    const bar = document.getElementById('progressBar');
+    const label = document.getElementById('progressLabel');
+    wrap.style.display = 'block';
+    let i = 0;
+    function step() {
+      if (i >= stages.length) return;
+      label.textContent = stages[i].label;
+      bar.style.width = stages[i].pct + '%';
+      i++;
+      if (i < stages.length) setTimeout(step, stages[i-1].delay || 800);
+    }
+    step();
+  }
+
+  // ── Validation ─────────────────────────────────────
+  function validate() {
+    const required = [
+      { id: 'reportName', label: 'Report name' },
+      { id: 'landingUrl', label: 'Landing page URL' }
+    ];
+    for (const f of required) {
+      if (!document.getElementById(f.id).value.trim()) {
+        showStatus('error', `Please fill in the <strong>${f.label}</strong> field.`);
+        document.getElementById(f.id).focus();
+        return false;
+      }
+    }
+    const sources = [...document.querySelectorAll('.checkbox-group input:checked')];
+    if (sources.length === 0) {
+      showStatus('error', 'Please select at least one <strong>data source</strong>.');
+      return false;
+    }
+    const period = document.getElementById('periodValue').value;
+    if (period === 'custom') {
+      const s = document.getElementById('startDate').value;
+      const e = document.getElementById('endDate').value;
+      if (!s || !e) {
+        showStatus('error', 'Please select both <strong>start and end dates</strong> for the custom period.');
+        return false;
+      }
+      if (new Date(s) >= new Date(e)) {
+        showStatus('error', 'Start date must be <strong>before</strong> end date.');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // ── Status display ─────────────────────────────────
+  function showStatus(type, html) {
+    const box = document.getElementById('statusBox');
+    const icon = type === 'success' ? '✓' : '⚠';
+    box.className = 'status-box ' + type;
+    box.style.display = 'flex';
+    box.innerHTML = `<span class="status-icon">${icon}</span><div>${html}</div>`;
+  }
+
+  // ── Build payload ──────────────────────────────────
+  function buildPayload() {
+    const period = document.getElementById('periodValue').value;
+    const sources = [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value);
+    const benchmarks = [...document.querySelectorAll('#benchmarkBody tr')].map(tr => {
+      const inputs = tr.querySelectorAll('input');
+      return { name: inputs[0]?.value?.trim(), traffic: inputs[1]?.value };
+    }).filter(b => b.name);
+
+    return {
+      reportName: document.getElementById('reportName').value.trim(),
+      landingUrl: document.getElementById('landingUrl').value.trim(),
+      chapterScope: document.getElementById('chapterScope').value,
+      chapterUrls: document.getElementById('chapterUrls').value.trim().split('\n').filter(Boolean),
+      period: period === 'custom'
+        ? { type: 'custom', startDate: document.getElementById('startDate').value, endDate: document.getElementById('endDate').value }
+        : { type: 'rolling', days: parseInt(period) },
+      dataSources: sources,
+      yoy: {
+        enabled: document.getElementById('yoyToggle').checked,
+        priorYearUrls: document.getElementById('yoyUrls').value.trim().split('\n').filter(Boolean)
+      },
+      segments: tags.seg,
+      slide1: {
+        trafficWindow: parseInt(document.getElementById('trafficWindow').value),
+        chapterCount: parseInt(document.getElementById('chapterCount').value) || null,
+        benchmarks
+      },
+      slide2: {
+        accountList: document.getElementById('accountList').value.trim().split('\n').filter(Boolean),
+        segmentLabels: tags.seg2
+      }
+    };
+  }
+
+  // ── Submit ─────────────────────────────────────────
+  async function submitForm() {
+    document.getElementById('statusBox').style.display = 'none';
+    document.getElementById('downloadArea').style.display = 'none';
+    document.getElementById('progressWrap').style.display = 'none';
+
+    if (!validate()) return;
+
+    const payload = buildPayload();
+
+    // UI: loading state
+    const btn = document.getElementById('submitBtn');
+    const lbl = document.getElementById('submitLabel');
+    const spin = document.getElementById('spinner');
+    btn.disabled = true;
+    lbl.textContent = 'Submitting...';
+    spin.style.display = 'block';
+
+    simulateProgress([
+      { label: 'Sending inputs to server...', pct: 15, delay: 600 },
+      { label: 'Generating SQL query...', pct: 35, delay: 800 },
+      { label: 'Running query on SQL Server...', pct: 60, delay: 1500 },
+      { label: 'Exporting data to Excel...', pct: 80, delay: 1000 },
+      { label: 'Finalising output...', pct: 95, delay: 800 },
+    ]);
+
+    try {
+      // ── REPLACE THIS URL WITH YOUR VM FLASK API ENDPOINT ──
+      const VM_API_URL = 'http://YOUR_VM_IP:5000/generate-report';
+
+      const response = await fetch(VM_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      document.getElementById('progressBar').style.width = '100%';
+      document.getElementById('progressLabel').textContent = 'Done!';
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || `Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      showStatus('success', `<strong>Report generated successfully!</strong> Your files are ready to download.`);
+
+      // Show download buttons
+      const dlArea = document.getElementById('downloadArea');
+      dlArea.style.display = 'block';
+      dlArea.innerHTML = `
+        <a class="dl-btn" href="${result.excelUrl}" download>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8 17l3-4.5 2 2.67L15 12l3 5H8z"/></svg>
+          Download Excel
+        </a>
+        <a class="dl-btn" href="${result.pptUrl}" download>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13H9v3H7V6h5zm-3 5h3c.83 0 1.5-.67 1.5-1.5S12.83 8 12 8H9v3z"/></svg>
+          Download PowerPoint
+        </a>`;
+
+    } catch (err) {
+      document.getElementById('progressWrap').style.display = 'none';
+      showStatus('error', `<strong>Could not connect to the report server.</strong><br><small>${err.message}</small>`);
+    } finally {
+      btn.disabled = false;
+      lbl.textContent = 'Generate report';
+      spin.style.display = 'none';
+    }
+  }
+</script>
+</body>
+</html>
