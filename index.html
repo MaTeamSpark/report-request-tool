@@ -475,7 +475,7 @@
       chapterUrls: document.getElementById('chapterUrls').value.trim().split('\n').filter(Boolean),
       period: period === 'custom'
         ? { type: 'custom', startDate: document.getElementById('publishDate').value, endDate: document.getElementById('endDate').value }
-        : { type: 'from_publish', days: parseInt(period) },
+        : { type: 'from_publish', days: parseInt(period), startDate: dateRange.startDate, endDate: dateRange.endDate },
       dateRange,
       dataSources: sources,
       linkedinCampaign: document.getElementById('linkedinCampaign').value.trim().split('\n').filter(Boolean),
