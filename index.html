@@ -160,30 +160,31 @@
     <div class="field">
       <label class="field-label">Chapter scope</label>
       <select id="chapterScope" onchange="toggleChapterUrls(this)">
-        <option value="all">All chapters</option>
         <option value="specific">Specific chapters only</option>
         <option value="landing_only">Landing page only (no chapters)</option>
       </select>
     </div>
 
-    <div class="field" id="chapterUrlField" style="display:none;">
+    <div class="field" id="chapterUrlField">
       <label class="field-label">Chapter URLs (one per line)</label>
       <textarea id="chapterUrls" placeholder="https://www.bain.com/insights/.../chapter-1&#10;https://www.bain.com/insights/.../chapter-2"></textarea>
     </div>
 
     <div class="field">
       <label class="field-label">Analysis period <span class="req">*</span></label>
+      <div class="field" style="margin-bottom:10px;">
+        <label class="field-label">Report publish date (start date) <span class="req">*</span></label>
+        <input type="date" id="publishDate" onchange="updatePeriodFromPublish()" />
+        <p class="field-hint">This will be used as the start date for the analysis period.</p>
+      </div>
       <div class="period-group">
-        <button type="button" class="period-btn active" onclick="setPeriod(this,'30')">Last 30 days</button>
-        <button type="button" class="period-btn" onclick="setPeriod(this,'60')">Last 60 days</button>
-        <button type="button" class="period-btn" onclick="setPeriod(this,'90')">Last 90 days</button>
-        <button type="button" class="period-btn" onclick="setPeriod(this,'custom')">Custom range</button>
+        <button type="button" class="period-btn active" onclick="setPeriod(this,'30')">First 30 days</button>
+        <button type="button" class="period-btn" onclick="setPeriod(this,'60')">First 60 days</button>
+        <button type="button" class="period-btn" onclick="setPeriod(this,'90')">First 90 days</button>
+        <button type="button" class="period-btn" onclick="setPeriod(this,'custom')">Custom end date</button>
       </div>
       <input type="hidden" id="periodValue" value="30" />
       <div class="custom-dates" id="customDates">
-        <div class="field" style="margin-bottom:0;">
-          <label class="field-label">Start date</label><input type="date" id="startDate" />
-        </div>
         <div class="field" style="margin-bottom:0;">
           <label class="field-label">End date</label><input type="date" id="endDate" />
         </div>
@@ -197,6 +198,12 @@
         <label class="cb-pill"><input type="checkbox" value="Marketo" /> Marketo</label>
         <label class="cb-pill"><input type="checkbox" value="LinkedIn" /> LinkedIn</label>
       </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">LinkedIn campaign name</label>
+      <input type="text" id="linkedinCampaign" placeholder="e.g. Global Payments 2025 - APAC" />
+      <p class="field-hint">Used to filter LinkedIn data by campaign name.</p>
     </div>
 
     <div class="field">
@@ -216,52 +223,6 @@
         <textarea id="yoyUrls" placeholder="https://www.bain.com/insights/.../2024-report"></textarea>
       </div>
     </div>
-
-    <div class="field">
-      <label class="field-label">Industry / segment split for bar charts</label>
-      <div class="tag-container" id="segTags"></div>
-      <div class="tag-input-row">
-        <input type="text" id="segInput" placeholder="e.g. Financial Services" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('seg');}" />
-        <button type="button" class="tag-add-btn" onclick="addTag('seg')">+ Add</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Slide 1 -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon">📊</div>
-      <h2>Slide 1 — Traffic & Web Analytics</h2>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label class="field-label">Traffic window</label>
-        <select id="trafficWindow">
-          <option value="30">30 days from launch (default)</option>
-          <option value="60">60 days from launch</option>
-          <option value="90">90 days from launch</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field-label">Chapter count</label>
-        <input type="number" id="chapterCount" placeholder="e.g. 12" min="1" />
-      </div>
-    </div>
-    <div class="field">
-      <label class="field-label">Benchmark reports</label>
-      <p class="field-hint" style="margin-bottom:10px;">Add comparable reports with 30-day traffic for benchmarking.</p>
-      <table class="bench">
-        <thead><tr><th style="width:55%">Report name</th><th style="width:35%">30-day traffic</th><th style="width:10%"></th></tr></thead>
-        <tbody id="benchmarkBody">
-          <tr>
-            <td><input type="text" placeholder="Report name" /></td>
-            <td><input type="number" placeholder="e.g. 4500" min="0" /></td>
-            <td><button type="button" class="remove-btn" onclick="removeRow(this)">×</button></td>
-          </tr>
-        </tbody>
-      </table>
-      <button type="button" class="add-row-btn" onclick="addBenchmarkRow()">+ Add benchmark</button>
-    </div>
   </div>
 
   <!-- Slide 2 -->
@@ -279,14 +240,6 @@
       <label class="field-label">Or upload account list</label>
       <input type="file" id="accountFile" accept=".csv,.xlsx,.xls" />
       <p class="field-hint">Accepted: .csv, .xlsx, .xls</p>
-    </div>
-    <div class="field">
-      <label class="field-label">Segment label names for bar chart</label>
-      <div class="tag-container" id="seg2Tags"></div>
-      <div class="tag-input-row">
-        <input type="text" id="seg2Input" placeholder="e.g. Healthcare" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('seg2');}" />
-        <button type="button" class="tag-add-btn" onclick="addTag('seg2')">+ Add</button>
-      </div>
     </div>
   </div>
 
@@ -324,6 +277,16 @@
     btn.classList.add('active');
     document.getElementById('periodValue').value = val;
     document.getElementById('customDates').classList.toggle('show', val === 'custom');
+    if (val !== 'custom') updatePeriodFromPublish();
+  }
+
+  function updatePeriodFromPublish() {
+    const publishDate = document.getElementById('publishDate')?.value;
+    const period = document.getElementById('periodValue').value;
+    if (!publishDate || period === 'custom') return;
+    const end = new Date(publishDate);
+    end.setDate(end.getDate() + parseInt(period));
+    document.getElementById('publishDate').dataset.endDate = end.toISOString().split('T')[0];
   }
 
   function toggleChapterUrls(sel) {
@@ -366,41 +329,54 @@
   // ── SQL Generation ─────────────────────────────────
   function buildDateRange() {
     const period = document.getElementById('periodValue').value;
+    const publishDate = document.getElementById('publishDate')?.value;
     if (period === 'custom') {
-      return { startDate: document.getElementById('startDate').value, endDate: document.getElementById('endDate').value };
+      return { startDate: publishDate || '', endDate: document.getElementById('endDate').value };
     }
-    const end = new Date();
-    const start = new Date();
-    start.setDate(start.getDate() - parseInt(period));
+    if (!publishDate) {
+      // fallback if no publish date entered
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - parseInt(period));
+      return { startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] };
+    }
+    const start = new Date(publishDate);
+    const end = new Date(publishDate);
+    end.setDate(end.getDate() + parseInt(period));
     return { startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] };
   }
 
   function buildReportFilter() {
     const url = document.getElementById('landingUrl').value.trim();
     const name = document.getElementById('reportName').value.trim();
-    // Extract slug from URL for LIKE filter
+    const linkedinCampaign = document.getElementById('linkedinCampaign')?.value.trim();
     const parts = url.replace(/\/$/, '').split('/');
     const slug = parts[parts.length - 1] || name.toLowerCase().replace(/\s+/g, '-');
-    return `%${slug}%`;
+    return {
+      urlSlug:          `%${slug}%`,
+      reportName:       `%${name}%`,
+      linkedinCampaign: linkedinCampaign ? `%${linkedinCampaign}%` : `%${slug}%`
+    };
   }
 
   function generateQueries(sources, dateRange, reportFilter) {
     const queries = {};
     const { startDate, endDate } = dateRange;
+    const { urlSlug, reportName, linkedinCampaign } = reportFilter;
+    const year = new Date(endDate).getFullYear();
 
     if (sources.includes('GA')) {
       const GA_COLS = ['date','Page_title','Page','Channel','url','pagePath','screenPageViews','[CRM Company Group Name]','[CRM Industry]','[Firm Priority]','[CRM Industry Sector]','[Company Group_excluding "Other"]'];
-      queries.ga = `SELECT ${GA_COLS.join(', ')}\nFROM   #ABC1\nWHERE  pagePath LIKE '${reportFilter}'\n  AND  date BETWEEN '${startDate}' AND '${endDate}'\nORDER  BY date;`;
+      queries.ga = `SELECT ${GA_COLS.join(', ')}\nFROM   #ABC1\nWHERE  pagePath LIKE '${urlSlug}'\n  AND  date BETWEEN '${startDate}' AND '${endDate}'\nORDER  BY date;`;
     }
 
     if (sources.includes('LinkedIn')) {
-      queries.linkedin = `SELECT date, pivot_type, pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  [*Campaign Name] LIKE '${reportFilter}'\n  AND  DATE BETWEEN '${startDate}' AND '${endDate}'\n  AND  totalEngagements <> 0;`;
+      queries.linkedin = `SELECT date, pivot_type, pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  [*Campaign Name] LIKE '${linkedinCampaign}'\n  AND  DATE BETWEEN '${startDate}' AND '${endDate}'\n  AND  totalEngagements <> 0;`;
     }
 
     if (sources.includes('Marketo')) {
-      const year = new Date().getFullYear();
       const MK_COLS = ['[Contact Record ID]','[Full Name]','[Job Title]','[Job Level]','[Company Name]','[Group Name]','[Company Industry]','[Sector]','[Priority]'];
-      queries.marketo = `SELECT DISTINCT ${MK_COLS.join(', ')}\nFROM   MarketingSF.dbo.ClientEngagement_master_2025_TI\nWHERE  [Report Base Name] LIKE '${reportFilter}'\n  AND  [Report Year] = '${year}'\n  AND  ActivityDate BETWEEN '${startDate}' AND '${endDate}';`;
+      queries.marketo = `SELECT DISTINCT ${MK_COLS.join(', ')}\nFROM   MarketingSF.dbo.ClientEngagement_master_2025_TI\nWHERE  [Report Base Name] LIKE '${reportName}'\n  AND  [Report Year] = '${year}'\n  AND  ActivityDate BETWEEN '${startDate}' AND '${endDate}';`;
     }
 
     return queries;
@@ -412,7 +388,8 @@
       { id: 'userName', label: 'Your name' },
       { id: 'userEmail', label: 'Your email' },
       { id: 'reportName', label: 'Report name' },
-      { id: 'landingUrl', label: 'Landing page URL' }
+      { id: 'landingUrl', label: 'Landing page URL' },
+      { id: 'publishDate', label: 'Report publish date' }
     ];
     for (const f of checks) {
       if (!document.getElementById(f.id).value.trim()) {
@@ -468,26 +445,24 @@
       },
       reportName: document.getElementById('reportName').value.trim(),
       landingUrl: document.getElementById('landingUrl').value.trim(),
+      publishDate: document.getElementById('publishDate').value,
       chapterScope: document.getElementById('chapterScope').value,
       chapterUrls: document.getElementById('chapterUrls').value.trim().split('\n').filter(Boolean),
       period: period === 'custom'
-        ? { type: 'custom', startDate: document.getElementById('startDate').value, endDate: document.getElementById('endDate').value }
-        : { type: 'rolling', days: parseInt(period) },
+        ? { type: 'custom', startDate: document.getElementById('publishDate').value, endDate: document.getElementById('endDate').value }
+        : { type: 'from_publish', days: parseInt(period) },
       dateRange,
       dataSources: sources,
+      linkedinCampaign: document.getElementById('linkedinCampaign').value.trim(),
       yoy: {
         enabled: document.getElementById('yoyToggle').checked,
         priorYearUrls: document.getElementById('yoyUrls').value.trim().split('\n').filter(Boolean)
       },
-      segments: tags.seg,
-      slide1: {
-        trafficWindow: parseInt(document.getElementById('trafficWindow').value),
-        chapterCount: parseInt(document.getElementById('chapterCount').value) || null,
-        benchmarks
-      },
+      segments: [],
+      slide1: {},
       slide2: {
         accountList: document.getElementById('accountList').value.trim().split('\n').filter(Boolean),
-        segmentLabels: tags.seg2
+        segmentLabels: []
       },
       generatedQueries: generateQueries(sources, dateRange, buildReportFilter())
     };
@@ -659,12 +634,24 @@
     ]);
 
     try {
-      const res = await fetch(FLASK_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const fileInput = document.getElementById('accountFile');
+      let response;
+
+      if (fileInput.files.length > 0) {
+        // Send as multipart with file
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(payload));
+        formData.append('accountFile', fileInput.files[0]);
+        response = await fetch(FLASK_API, { method: 'POST', body: formData });
+      } else {
+        response = await fetch(FLASK_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
       showStatus('pending',
         `<div><strong>Request submitted successfully!</strong><br>
         <span style="font-size:13px;">Your request ID is <strong>${payload.requestId}</strong>. 
