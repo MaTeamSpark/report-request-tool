@@ -323,44 +323,52 @@
     const url = document.getElementById('landingUrl').value.trim();
     const name = document.getElementById('reportName').value.trim();
     const campaignLines = document.getElementById('linkedinCampaign').value.trim().split('\n').filter(Boolean);
-    const parts = url.replace(/\/$/, '').split('/');
-    const slug = parts[parts.length - 1] || name.toLowerCase().replace(/\s+/g, '-');
+    const chapterUrls = document.getElementById('chapterUrls').value.trim().split('\n').filter(Boolean);
 
-    // Build LinkedIn filter — if multiple campaigns use OR, else use single LIKE
+    // Build GA pagePath filter — strip domain from all URLs, use OR for multiple
+    const allUrls = chapterUrls.length > 0 ? chapterUrls : [url];
+    const pathFilters = allUrls.map(u => {
+      // Strip domain — keep only path after bain.com
+      const stripped = u.trim().replace(/^https?:\/\/[^\/]+/, '').replace(/\/$/, '');
+      return `pagePath LIKE '%${stripped}%'`;
+    });
+    const gaFilter = pathFilters.length > 1
+      ? `(${pathFilters.join('\n  OR ')})`
+      : pathFilters[0] || `pagePath LIKE '%${url}%'`;
+
+    // Build LinkedIn filter — OR for multiple campaign names
     let linkedinFilter;
     if (campaignLines.length > 1) {
-      linkedinFilter = campaignLines.map(c => `[*Campaign Name] LIKE '%${c.trim()}%'`).join('\n  OR  ');
-      linkedinFilter = `(${linkedinFilter})`;
+      linkedinFilter = `(${campaignLines.map(c => `[*Campaign Name] LIKE '%${c.trim()}%'`).join('\n  OR  ')})`;
     } else if (campaignLines.length === 1) {
       linkedinFilter = `[*Campaign Name] LIKE '%${campaignLines[0].trim()}%'`;
     } else {
-      linkedinFilter = `[*Campaign Name] LIKE '%${slug}%'`;
+      linkedinFilter = `[*Campaign Name] LIKE '%${name}%'`;
     }
 
-    return {
-      urlSlug:         `%${slug}%`,
-      reportName:      `%${name}%`,
-      linkedinFilter
-    };
+    return { gaFilter, linkedinFilter, reportName: `%${name}%` };
   }
 
   function generateQueries(sources, dateRange, reportFilter) {
     const queries = {};
     const { startDate, endDate } = dateRange;
-    const { urlSlug, reportName, linkedinFilter } = reportFilter;
-    const year = new Date(endDate).getFullYear();
+    const { gaFilter, linkedinFilter, reportName } = reportFilter;
+    const year = new Date(startDate).getFullYear();
 
     if (sources.includes('GA')) {
-      const GA_COLS = ['date','Page_title','Page','Channel','url','pagePath','screenPageViews','[CRM Company Group Name]','[CRM Industry]','[Firm Priority]','[CRM Industry Sector]','[Company Group_excluding "Other"]'];
-      queries.ga = `SELECT ${GA_COLS.join(', ')}\nFROM   #ABC1\nWHERE  pagePath LIKE '${urlSlug}'\n  AND  date BETWEEN '${startDate}' AND '${endDate}'\nORDER  BY date;`;
+      const GA_COLS = ['date', 'Page_title', 'Page', 'url', 'pagePath', 'screenPageViews',
+        '[CRM Company Group Name]', '[CRM Industry]', '[Firm Priority]',
+        '[CRM Industry Sector]', '[Company Group_excluding "Other"]', 'Channel'];
+      queries.ga = `SELECT ${GA_COLS.join(', ')}\nFROM   [MarketingSF].[dbo].[GA_ChannelSources_Pages_CompanyMapped_EPIMapped_TI]\nWHERE  ${gaFilter}\n  AND  date BETWEEN '${startDate}' AND '${endDate}'\nORDER  BY date;`;
     }
 
     if (sources.includes('LinkedIn')) {
-      queries.linkedin = `SELECT date, pivot_type, pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  ${linkedinFilter}\n  AND  DATE BETWEEN '${startDate}' AND '${endDate}'\n  AND  totalEngagements <> 0;`;
+      queries.linkedin = `SELECT date,\n       pivot_type,\n       pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  ${linkedinFilter}\n  AND  DATE BETWEEN '${startDate}' AND '${endDate}'\n  AND  totalEngagements <> 0;`;
     }
 
     if (sources.includes('Marketo')) {
-      const MK_COLS = ['[Contact Record ID]','[Full Name]','[Job Title]','[Job Level]','[Company Name]','[Group Name]','[Company Industry]','[Sector]','[Priority]'];
+      const MK_COLS = ['[Contact Record ID]', '[Full Name]', '[Job Title]', '[Job Level]',
+        '[Company Name]', '[Group Name]', '[Company Industry]', '[Sector]', '[Priority]'];
       queries.marketo = `SELECT DISTINCT ${MK_COLS.join(', ')}\nFROM   MarketingSF.dbo.ClientEngagement_master_2025_TI\nWHERE  [Report Base Name] LIKE '${reportName}'\n  AND  [Report Year] = '${year}'\n  AND  ActivityDate BETWEEN '${startDate}' AND '${endDate}';`;
     }
 
