@@ -396,12 +396,14 @@
 
   // ── Validation ─────────────────────────────────────
   function validate() {
+    // Basic required fields
     const checks = [
-      { id: 'userName', label: 'Your name' },
-      { id: 'userEmail', label: 'Your email' },
-      { id: 'reportName', label: 'Report name' },
-      { id: 'landingUrl', label: 'Landing page URL' },
-      { id: 'publishDate', label: 'Report publish date' }
+      { id: 'userName',    label: 'Your name' },
+      { id: 'userEmail',   label: 'Your email' },
+      { id: 'reportName',  label: 'Report name' },
+      { id: 'landingUrl',  label: 'Primary landing page URL' },
+      { id: 'publishDate', label: 'Report publish date' },
+      { id: 'linkedinCampaign', label: 'LinkedIn campaign name(s)' }
     ];
     for (const f of checks) {
       if (!document.getElementById(f.id).value.trim()) {
@@ -410,22 +412,56 @@
         return false;
       }
     }
+
+    // Email must be Bain
     const email = document.getElementById('userEmail').value.trim();
     if (!email.includes('@bain.com')) {
       showStatus('error', 'Please use your <strong>Bain email address</strong>.');
       return false;
     }
+
+    // At least one data source
     const sources = [...document.querySelectorAll('.checkbox-group input:checked')];
     if (sources.length === 0) {
       showStatus('error', 'Please select at least one <strong>data source</strong>.');
       return false;
     }
-    if (document.getElementById('periodValue').value === 'custom') {
-      const s = document.getElementById('startDate').value;
-      const e = document.getElementById('endDate').value;
-      if (!s || !e) { showStatus('error', 'Please set both <strong>start and end dates</strong>.'); return false; }
-      if (new Date(s) >= new Date(e)) { showStatus('error', 'Start date must be <strong>before</strong> end date.'); return false; }
+
+    // If specific chapters selected, chapter URLs are required
+    const chapterScope = document.getElementById('chapterScope').value;
+    if (chapterScope === 'specific') {
+      const chapterUrls = document.getElementById('chapterUrls').value.trim();
+      if (!chapterUrls) {
+        showStatus('error', 'You selected <strong>Specific chapters</strong> — please enter at least one chapter URL.');
+        document.getElementById('chapterUrls').focus();
+        return false;
+      }
     }
+
+    // Custom period — end date required
+    if (document.getElementById('periodValue').value === 'custom') {
+      const e = document.getElementById('endDate').value;
+      if (!e) {
+        showStatus('error', 'Please set a <strong>custom end date</strong> for the analysis period.');
+        return false;
+      }
+      const start = new Date(document.getElementById('publishDate').value);
+      const end = new Date(e);
+      if (end <= start) {
+        showStatus('error', 'End date must be <strong>after</strong> the publish date.');
+        return false;
+      }
+    }
+
+    // Slide 2 — either account list text OR file upload required
+    const accountList = document.getElementById('accountList').value.trim();
+    const accountFile = document.getElementById('accountFile').files.length > 0;
+    if (!accountList && !accountFile) {
+      showStatus('error', 'Please provide a <strong>priority account list</strong> — either paste company names or upload a file.');
+      document.getElementById('accountList').focus();
+      return false;
+    }
+
     return true;
   }
 
@@ -443,10 +479,6 @@
     const sources = [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value);
     const dateRange = buildDateRange();
     const reportFilter = buildReportFilter();
-    const benchmarks = [...document.querySelectorAll('#benchmarkBody tr')].map(tr => {
-      const inputs = tr.querySelectorAll('input');
-      return { name: inputs[0]?.value?.trim(), traffic: inputs[1]?.value };
-    }).filter(b => b.name);
 
     return {
       requestId: 'REQ-' + Date.now(),
