@@ -607,13 +607,14 @@
       // Highlight flagged fields if any
       const flagged = r.flaggedFields || [];
       const fieldMap = {
-        'Report name':                        ['reportName'],
-        'Landing page URL':                   ['landingUrl'],
-        'Chapter URLs':                       ['chapterUrls'],
-        'Analysis period (custom dates)':     ['endDate'],
-        'Prior year URLs (YoY)':              ['yoyUrls'],
-        'LinkedIn campaign names':            ['linkedinCampaign'],
-        'Priority account list (Slide 2)':    ['accountList'],
+        'Report name':                     ['reportName'],
+        'Landing page URL':                ['landingUrl'],
+        'Chapter URLs':                    ['chapterUrls'],
+        'Report publish date':             ['publishDate'],
+        'Analysis period (custom dates)':  ['endDate'],
+        'LinkedIn campaign names':         ['linkedinCampaign'],
+        'Prior year URLs (YoY)':           ['yoyUrls'],
+        'Priority account list':           ['accountList'],
       };
       flagged.forEach(field => {
         const ids = fieldMap[field] || [];
