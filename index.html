@@ -269,7 +269,7 @@
   const FLASK_API = 'http://10.193.41.9:5000/submit-request';
 
   // ── State ──────────────────────────────────────────
-  const tags = { seg: [], seg2: [] };
+  const tags = {}; // kept for compatibility
 
   // ── Period selector ────────────────────────────────
   function setPeriod(btn, val) {
@@ -297,34 +297,7 @@
     document.getElementById('yoyExtra').classList.toggle('show', el.checked);
   }
 
-  // ── Tags ───────────────────────────────────────────
-  function addTag(key) {
-    const inp = document.getElementById(key === 'seg' ? 'segInput' : 'seg2Input');
-    const val = inp.value.trim();
-    if (!val || tags[key].includes(val)) { inp.value = ''; return; }
-    tags[key].push(val);
-    renderTags(key);
-    inp.value = '';
-  }
-  function removeTag(key, i) { tags[key].splice(i, 1); renderTags(key); }
-  function renderTags(key) {
-    const c = document.getElementById(key === 'seg' ? 'segTags' : 'seg2Tags');
-    c.innerHTML = tags[key].map((t, i) =>
-      `<span class="tag">${t}<button type="button" onclick="removeTag('${key}',${i})">×</button></span>`
-    ).join('');
-  }
-
-  // ── Benchmark table ────────────────────────────────
-  function addBenchmarkRow() {
-    const tbody = document.getElementById('benchmarkBody');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td><input type="text" placeholder="Report name" /></td><td><input type="number" placeholder="e.g. 4500" min="0" /></td><td><button type="button" class="remove-btn" onclick="removeRow(this)">×</button></td>`;
-    tbody.appendChild(tr);
-  }
-  function removeRow(btn) {
-    const tbody = document.getElementById('benchmarkBody');
-    if (tbody.querySelectorAll('tr').length > 1) btn.closest('tr').remove();
-  }
+  // ── Tags (kept for potential future use) ──────────────────────────────────
 
   // ── SQL Generation ─────────────────────────────────
   function buildDateRange() {
@@ -617,14 +590,11 @@
       tags.seg = r.segments || [];
       renderTags('seg');
 
-      // Slide 1
-      if (r.slide1?.trafficWindow) document.getElementById('trafficWindow').value = r.slide1.trafficWindow;
-      if (r.slide1?.chapterCount) document.getElementById('chapterCount').value = r.slide1.chapterCount;
-
       // Slide 2
       if (r.slide2?.accountList?.length) document.getElementById('accountList').value = r.slide2.accountList.join('\n');
-      tags.seg2 = r.slide2?.segmentLabels || [];
-      renderTags('seg2');
+
+      // LinkedIn campaigns
+      if (r.linkedinCampaign?.length) document.getElementById('linkedinCampaign').value = Array.isArray(r.linkedinCampaign) ? r.linkedinCampaign.join('\n') : r.linkedinCampaign;
 
       // Highlight flagged fields if any
       const flagged = r.flaggedFields || [];
@@ -632,12 +602,10 @@
         'Report name':                        ['reportName'],
         'Landing page URL':                   ['landingUrl'],
         'Chapter URLs':                       ['chapterUrls'],
-        'Analysis period (custom dates)':     ['startDate', 'endDate'],
+        'Analysis period (custom dates)':     ['endDate'],
         'Prior year URLs (YoY)':              ['yoyUrls'],
-        'Industry / segment split':           ['segInput'],
-        'Benchmark report names & traffic':   [],
+        'LinkedIn campaign names':            ['linkedinCampaign'],
         'Priority account list (Slide 2)':    ['accountList'],
-        'Segment labels (Slide 2)':           ['seg2Input']
       };
       flagged.forEach(field => {
         const ids = fieldMap[field] || [];
