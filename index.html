@@ -201,9 +201,9 @@
     </div>
 
     <div class="field">
-      <label class="field-label">LinkedIn campaign name</label>
-      <input type="text" id="linkedinCampaign" placeholder="e.g. Global Payments 2025 - APAC" />
-      <p class="field-hint">Used to filter LinkedIn data by campaign name.</p>
+      <label class="field-label">LinkedIn campaign names</label>
+      <textarea id="linkedinCampaign" placeholder="One campaign name per line&#10;e.g. Global Payments 2025 - APAC&#10;Global Payments 2025 - EMEA" style="min-height:80px;"></textarea>
+      <p class="field-hint">Used to filter LinkedIn data. Enter one campaign name per line.</p>
     </div>
 
     <div class="field">
@@ -349,20 +349,32 @@
   function buildReportFilter() {
     const url = document.getElementById('landingUrl').value.trim();
     const name = document.getElementById('reportName').value.trim();
-    const linkedinCampaign = document.getElementById('linkedinCampaign')?.value.trim();
+    const campaignLines = document.getElementById('linkedinCampaign').value.trim().split('\n').filter(Boolean);
     const parts = url.replace(/\/$/, '').split('/');
     const slug = parts[parts.length - 1] || name.toLowerCase().replace(/\s+/g, '-');
+
+    // Build LinkedIn filter — if multiple campaigns use OR, else use single LIKE
+    let linkedinFilter;
+    if (campaignLines.length > 1) {
+      linkedinFilter = campaignLines.map(c => `[*Campaign Name] LIKE '%${c.trim()}%'`).join('\n  OR  ');
+      linkedinFilter = `(${linkedinFilter})`;
+    } else if (campaignLines.length === 1) {
+      linkedinFilter = `[*Campaign Name] LIKE '%${campaignLines[0].trim()}%'`;
+    } else {
+      linkedinFilter = `[*Campaign Name] LIKE '%${slug}%'`;
+    }
+
     return {
-      urlSlug:          `%${slug}%`,
-      reportName:       `%${name}%`,
-      linkedinCampaign: linkedinCampaign ? `%${linkedinCampaign}%` : `%${slug}%`
+      urlSlug:         `%${slug}%`,
+      reportName:      `%${name}%`,
+      linkedinFilter
     };
   }
 
   function generateQueries(sources, dateRange, reportFilter) {
     const queries = {};
     const { startDate, endDate } = dateRange;
-    const { urlSlug, reportName, linkedinCampaign } = reportFilter;
+    const { urlSlug, reportName, linkedinFilter } = reportFilter;
     const year = new Date(endDate).getFullYear();
 
     if (sources.includes('GA')) {
@@ -371,7 +383,7 @@
     }
 
     if (sources.includes('LinkedIn')) {
-      queries.linkedin = `SELECT date, pivot_type, pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  [*Campaign Name] LIKE '${linkedinCampaign}'\n  AND  DATE BETWEEN '${startDate}' AND '${endDate}'\n  AND  totalEngagements <> 0;`;
+      queries.linkedin = `SELECT date, pivot_type, pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  ${linkedinFilter}\n  AND  DATE BETWEEN '${startDate}' AND '${endDate}'\n  AND  totalEngagements <> 0;`;
     }
 
     if (sources.includes('Marketo')) {
@@ -453,7 +465,7 @@
         : { type: 'from_publish', days: parseInt(period) },
       dateRange,
       dataSources: sources,
-      linkedinCampaign: document.getElementById('linkedinCampaign').value.trim(),
+      linkedinCampaign: document.getElementById('linkedinCampaign').value.trim().split('\n').filter(Boolean),
       yoy: {
         enabled: document.getElementById('yoyToggle').checked,
         priorYearUrls: document.getElementById('yoyUrls').value.trim().split('\n').filter(Boolean)
