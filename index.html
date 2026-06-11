@@ -348,6 +348,10 @@
     return { gaFilter, linkedinFilter, reportName: `%${name}%` };
   }
 
+  function buildLinkedInQuery(linkedinFilter, startStr, endStr) {
+    return `SELECT date,\n       pivot_type,\n       pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  ${linkedinFilter}\n  AND  DATE BETWEEN '${startStr}' AND '${endStr}'\n  AND  totalEngagements <> 0;`;
+  }
+
   function generateQueries(sources, dateRange, reportFilter) {
     const queries = {};
     const { startDate, endDate } = dateRange;
@@ -362,15 +366,32 @@
     }
 
     if (sources.includes('LinkedIn')) {
-      // LinkedIn dates: round start to 1st of month, end to 1st of next month
-      const liStart = new Date(startDate);
-      liStart.setDate(1);
-      const liEnd = new Date(startDate);
-      liEnd.setDate(1);
-      liEnd.setMonth(liEnd.getMonth() + (parseInt(document.getElementById('periodValue').value) > 0 ? Math.ceil(parseInt(document.getElementById('periodValue').value) / 30) : 1));
-      const liStartStr = liStart.toISOString().split('T')[0];
-      const liEndStr   = liEnd.toISOString().split('T')[0];
-      queries.linkedin = `SELECT date,\n       pivot_type,\n       pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  ${linkedinFilter}\n  AND  DATE BETWEEN '${liStartStr}' AND '${liEndStr}'\n  AND  totalEngagements <> 0;`;
+      // LinkedIn dates:
+      // Start = 1st of publish month
+      // End = last day of nth month (n = number of months based on period)
+      const period = document.getElementById('periodValue').value;
+      const liStart = new Date(startDate + 'T00:00:00');
+      liStart.setDate(1); // always 1st of publish month
+
+      let monthsToAdd;
+      if (period === 'custom') {
+        // Custom — use end date's month last day
+        const liEndCustom = new Date(endDate + 'T00:00:00');
+        liEndCustom.setMonth(liEndCustom.getMonth() + 1);
+        liEndCustom.setDate(0); // last day of end date month
+        const liStartStr = liStart.toISOString().split('T')[0];
+        const liEndStr   = liEndCustom.toISOString().split('T')[0];
+        queries.linkedin = buildLinkedInQuery(linkedinFilter, liStartStr, liEndStr);
+      } else {
+        // 30 days = 1 month, 60 days = 2 months, 90 days = 3 months
+        monthsToAdd = Math.round(parseInt(period) / 30);
+        const liEnd = new Date(liStart);
+        liEnd.setMonth(liEnd.getMonth() + monthsToAdd);
+        liEnd.setDate(0); // last day of nth month
+        const liStartStr = liStart.toISOString().split('T')[0];
+        const liEndStr   = liEnd.toISOString().split('T')[0];
+        queries.linkedin = buildLinkedInQuery(linkedinFilter, liStartStr, liEndStr);
+      }
     }
 
     if (sources.includes('Marketo')) {
