@@ -597,91 +597,95 @@
       if (!res.ok) throw new Error('not found');
       const r = await res.json();
 
-      // Pre-fill all fields
-      document.getElementById('userName').value = r.user?.name || '';
-      document.getElementById('userEmail').value = r.user?.email || '';
-      document.getElementById('reportName').value = r.reportName || '';
-      document.getElementById('landingUrl').value = r.landingUrl || '';
+      // Pre-fill all fields — wrapped in try so errors don't show "not found"
+      try {
+        // Basic fields
+        document.getElementById('userName').value = r.user?.name || '';
+        document.getElementById('userEmail').value = r.user?.email || '';
+        document.getElementById('reportName').value = r.reportName || '';
+        document.getElementById('landingUrl').value = r.landingUrl || '';
 
-      // Publish date
-      if (r.publishDate) {
-        document.getElementById('publishDate').value = r.publishDate;
+        // Publish date
+        if (r.publishDate) document.getElementById('publishDate').value = r.publishDate;
+
+        // Chapter scope
+        if (r.chapterScope) {
+          document.getElementById('chapterScope').value = r.chapterScope;
+          toggleChapterUrls(document.getElementById('chapterScope'));
+        }
+        if (r.chapterUrls?.length) document.getElementById('chapterUrls').value = r.chapterUrls.join('\n');
+
+        // Period
+        if (r.period?.type === 'custom') {
+          setPeriod(document.querySelector('.period-btn:last-child'), 'custom');
+          document.getElementById('endDate').value = r.period.endDate || '';
+        } else {
+          const days = r.period?.days?.toString() || '30';
+          const btn = [...document.querySelectorAll('.period-btn')].find(b => b.textContent.includes(days));
+          if (btn) setPeriod(btn, days);
+        }
+
+        // Data sources
+        document.querySelectorAll('.checkbox-group input').forEach(cb => {
+          cb.checked = (r.dataSources || []).includes(cb.value);
+        });
+
+        // YoY
+        const yoyEl = document.getElementById('yoyToggle');
+        yoyEl.checked = r.yoy?.enabled || false;
+        toggleYoY(yoyEl);
+        if (r.yoy?.priorYearUrls?.length) document.getElementById('yoyUrls').value = r.yoy.priorYearUrls.join('\n');
+
+        // LinkedIn campaigns
+        const liEl = document.getElementById('linkedinCampaign');
+        if (r.linkedinCampaign) {
+          liEl.value = Array.isArray(r.linkedinCampaign)
+            ? r.linkedinCampaign.join('\n')
+            : r.linkedinCampaign;
+        }
+
+        // Account list (Slide 2)
+        const accountEl = document.getElementById('accountList');
+        if (r.slide2?.accountList?.length) {
+          accountEl.value = r.slide2.accountList.join('\n');
+        }
+
+        // Highlight flagged fields
+        const flagged = r.flaggedFields || [];
+        if (flagged.length > 0) {
+          setTimeout(() => {
+            const fieldMap = {
+              'Report name':                    ['reportName'],
+              'Landing page URL':               ['landingUrl'],
+              'Chapter URLs':                   ['chapterUrls'],
+              'Report publish date':            ['publishDate'],
+              'Analysis period (custom dates)': ['endDate'],
+              'LinkedIn campaign names':        ['linkedinCampaign'],
+              'Prior year URLs (YoY)':          ['yoyUrls'],
+              'Priority account list':          ['accountList'],
+            };
+            flagged.forEach(field => {
+              (fieldMap[field] || []).forEach(id => highlightField(id, 'Please review this field'));
+            });
+          }, 100);
+        }
+
+        statusEl.style.background = '#E1F5EE';
+        statusEl.style.color = '#0F6E56';
+        statusEl.style.display = 'block';
+        statusEl.textContent = flagged.length
+          ? `✓ Request loaded — ${flagged.length} field(s) highlighted for review`
+          : '✓ Request loaded successfully — review and resubmit';
+
+        document.getElementById('lookupCard').scrollIntoView({ behavior: 'smooth' });
+
+      } catch (fillErr) {
+        console.error('Field fill error:', fillErr);
+        statusEl.style.background = '#E1F5EE';
+        statusEl.style.color = '#0F6E56';
+        statusEl.style.display = 'block';
+        statusEl.textContent = '✓ Request loaded — some fields may need manual review.';
       }
-
-      // Chapter scope
-      if (r.chapterScope) {
-        document.getElementById('chapterScope').value = r.chapterScope;
-        toggleChapterUrls(document.getElementById('chapterScope'));
-      }
-      if (r.chapterUrls?.length) document.getElementById('chapterUrls').value = r.chapterUrls.join('\n');
-
-      // Period
-      if (r.period?.type === 'custom') {
-        setPeriod(document.querySelector('.period-btn:last-child'), 'custom');
-        document.getElementById('endDate').value = r.period.endDate || '';
-      } else {
-        const days = r.period?.days?.toString() || '30';
-        const btn = [...document.querySelectorAll('.period-btn')].find(b => b.textContent.includes(days));
-        if (btn) setPeriod(btn, days);
-      }
-
-      // Data sources
-      document.querySelectorAll('.checkbox-group input').forEach(cb => {
-        cb.checked = (r.dataSources || []).includes(cb.value);
-      });
-
-      // YoY
-      const yoyEl = document.getElementById('yoyToggle');
-      yoyEl.checked = r.yoy?.enabled || false;
-      toggleYoY(yoyEl);
-      if (r.yoy?.priorYearUrls?.length) document.getElementById('yoyUrls').value = r.yoy.priorYearUrls.join('\n');
-
-      // Segments
-      tags.seg = r.segments || [];
-      renderTags('seg');
-
-      // Slide 2 — account list
-      const accountEl = document.getElementById('accountList');
-      if (r.slide2?.accountList?.length) {
-        accountEl.value = r.slide2.accountList.join('\n');
-      }
-
-      // LinkedIn campaigns
-      const liEl = document.getElementById('linkedinCampaign');
-      if (r.linkedinCampaign) {
-        liEl.value = Array.isArray(r.linkedinCampaign) ? r.linkedinCampaign.join('\n') : r.linkedinCampaign;
-      }
-
-      // Highlight flagged fields after all values are set
-      const flagged = r.flaggedFields || [];
-      if (flagged.length > 0) {
-        setTimeout(() => {
-          const fieldMap = {
-            'Report name':                     ['reportName'],
-            'Landing page URL':                ['landingUrl'],
-            'Chapter URLs':                    ['chapterUrls'],
-            'Report publish date':             ['publishDate'],
-            'Analysis period (custom dates)':  ['endDate'],
-            'LinkedIn campaign names':         ['linkedinCampaign'],
-            'Prior year URLs (YoY)':           ['yoyUrls'],
-            'Priority account list':           ['accountList'],
-          };
-          flagged.forEach(field => {
-            const ids = fieldMap[field] || [];
-            ids.forEach(id => highlightField(id, 'Please review this field'));
-          });
-        }, 100); // small delay to ensure DOM is updated
-      }
-
-      statusEl.style.background = '#E1F5EE';
-      statusEl.style.color = '#0F6E56';
-      statusEl.style.display = 'block';
-      statusEl.textContent = flagged.length
-        ? `✓ Request loaded — ${flagged.length} field(s) highlighted for review`
-        : '✓ Request loaded successfully — review and resubmit';
-
-      // Scroll to form
-      document.getElementById('lookupCard').scrollIntoView({ behavior: 'smooth' });
 
     } catch {
       statusEl.style.background = '#FAECE7';
