@@ -323,10 +323,17 @@
     const url = document.getElementById('landingUrl').value.trim();
     const name = document.getElementById('reportName').value.trim();
     const campaignLines = document.getElementById('linkedinCampaign').value.trim().split('\n').filter(Boolean);
-    const chapterUrls = document.getElementById('chapterUrls').value.trim().split('\n').filter(Boolean);
+    const chapterScope = document.getElementById('chapterScope').value;
 
-    // GA: include landing page URL + all chapter URLs
-    const allUrls = [url, ...chapterUrls].filter(Boolean);
+    // GA: always include landing page URL
+    // Add chapter URLs only if scope is "specific"
+    let allUrls = [url];
+    if (chapterScope === 'specific') {
+      const chapterUrls = document.getElementById('chapterUrls').value.trim().split('\n').filter(Boolean);
+      allUrls = [url, ...chapterUrls];
+    }
+    allUrls = allUrls.filter(Boolean);
+
     const pathFilters = allUrls.map(u => {
       const stripped = u.trim().replace(/^https?:\/\/[^\/]+/, '').replace(/\/$/, '');
       return `pagePath LIKE '%${stripped}%'`;
