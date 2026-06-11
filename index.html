@@ -355,7 +355,10 @@
       linkedinFilter = `[*Campaign Name] LIKE '%${name}%'`;
     }
 
-    return { gaFilter, linkedinFilter, reportName: `%${name}%` };
+    // Strip year (4-digit number) from end of report name for Marketo filter
+    const nameForMarketo = name.replace(/\s*\b(19|20)\d{2}\b\s*$/, '').trim();
+
+    return { gaFilter, linkedinFilter, reportName: `%${nameForMarketo}%` };
   }
 
   function buildLinkedInQuery(linkedinFilter, startStr, endStr) {
