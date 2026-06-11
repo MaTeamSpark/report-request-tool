@@ -640,28 +640,38 @@
       tags.seg = r.segments || [];
       renderTags('seg');
 
-      // Slide 2
-      if (r.slide2?.accountList?.length) document.getElementById('accountList').value = r.slide2.accountList.join('\n');
+      // Slide 2 — account list
+      const accountEl = document.getElementById('accountList');
+      if (r.slide2?.accountList?.length) {
+        accountEl.value = r.slide2.accountList.join('\n');
+      }
 
       // LinkedIn campaigns
-      if (r.linkedinCampaign?.length) document.getElementById('linkedinCampaign').value = Array.isArray(r.linkedinCampaign) ? r.linkedinCampaign.join('\n') : r.linkedinCampaign;
+      const liEl = document.getElementById('linkedinCampaign');
+      if (r.linkedinCampaign) {
+        liEl.value = Array.isArray(r.linkedinCampaign) ? r.linkedinCampaign.join('\n') : r.linkedinCampaign;
+      }
 
-      // Highlight flagged fields if any
+      // Highlight flagged fields after all values are set
       const flagged = r.flaggedFields || [];
-      const fieldMap = {
-        'Report name':                     ['reportName'],
-        'Landing page URL':                ['landingUrl'],
-        'Chapter URLs':                    ['chapterUrls'],
-        'Report publish date':             ['publishDate'],
-        'Analysis period (custom dates)':  ['endDate'],
-        'LinkedIn campaign names':         ['linkedinCampaign'],
-        'Prior year URLs (YoY)':           ['yoyUrls'],
-        'Priority account list':           ['accountList'],
-      };
-      flagged.forEach(field => {
-        const ids = fieldMap[field] || [];
-        ids.forEach(id => highlightField(id, 'Please review this field'));
-      });
+      if (flagged.length > 0) {
+        setTimeout(() => {
+          const fieldMap = {
+            'Report name':                     ['reportName'],
+            'Landing page URL':                ['landingUrl'],
+            'Chapter URLs':                    ['chapterUrls'],
+            'Report publish date':             ['publishDate'],
+            'Analysis period (custom dates)':  ['endDate'],
+            'LinkedIn campaign names':         ['linkedinCampaign'],
+            'Prior year URLs (YoY)':           ['yoyUrls'],
+            'Priority account list':           ['accountList'],
+          };
+          flagged.forEach(field => {
+            const ids = fieldMap[field] || [];
+            ids.forEach(id => highlightField(id, 'Please review this field'));
+          });
+        }, 100); // small delay to ensure DOM is updated
+      }
 
       statusEl.style.background = '#E1F5EE';
       statusEl.style.color = '#0F6E56';
