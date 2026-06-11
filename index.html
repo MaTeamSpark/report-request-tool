@@ -313,10 +313,13 @@
       start.setDate(start.getDate() - parseInt(period));
       return { startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] };
     }
-    const start = new Date(publishDate);
-    const end = new Date(publishDate);
-    end.setDate(end.getDate() + parseInt(period));
-    return { startDate: start.toISOString().split('T')[0], endDate: end.toISOString().split('T')[0] };
+    // Parse date string directly to avoid timezone shifts
+    const [py, pm, pd] = publishDate.split('-').map(Number);
+    const endDateObj = new Date(py, pm - 1, pd + parseInt(period)); // local time, no UTC shift
+    const endY = endDateObj.getFullYear();
+    const endM = String(endDateObj.getMonth() + 1).padStart(2, '0');
+    const endD = String(endDateObj.getDate()).padStart(2, '0');
+    return { startDate: publishDate, endDate: `${endY}-${endM}-${endD}` };
   }
 
   function buildReportFilter() {
