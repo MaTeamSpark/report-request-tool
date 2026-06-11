@@ -160,7 +160,7 @@
     <div class="field">
       <label class="field-label">Chapter scope</label>
       <select id="chapterScope" onchange="toggleChapterUrls(this)">
-        <option value="specific">Specific chapters only</option>
+        <option value="specific">Specific chapters + Landing page</option>
         <option value="landing_only">Landing page only (no chapters)</option>
       </select>
     </div>
@@ -373,32 +373,32 @@
     }
 
     if (sources.includes('LinkedIn')) {
-      // LinkedIn dates:
-      // Start = 1st of publish month
-      // End = last day of nth month (n = number of months based on period)
       const period = document.getElementById('periodValue').value;
-      const liStart = new Date(startDate + 'T00:00:00');
-      liStart.setDate(1); // always 1st of publish month
 
-      let monthsToAdd;
+      // Parse date parts directly to avoid timezone shifts
+      const [sy, sm] = startDate.split('-').map(Number);
+      const [ey, em] = endDate.split('-').map(Number);
+
+      // Start = 1st of publish month
+      const liStartStr = `${sy}-${String(sm).padStart(2,'0')}-01`;
+
+      let liEndStr;
       if (period === 'custom') {
-        // Custom — use end date's month last day
-        const liEndCustom = new Date(endDate + 'T00:00:00');
-        liEndCustom.setMonth(liEndCustom.getMonth() + 1);
-        liEndCustom.setDate(0); // last day of end date month
-        const liStartStr = liStart.toISOString().split('T')[0];
-        const liEndStr   = liEndCustom.toISOString().split('T')[0];
-        queries.linkedin = buildLinkedInQuery(linkedinFilter, liStartStr, liEndStr);
+        // Custom — 1st of month after end date's month
+        let endMonth = em + 1;
+        let endYear  = ey;
+        if (endMonth > 12) { endMonth = 1; endYear += 1; }
+        liEndStr = `${endYear}-${String(endMonth).padStart(2,'0')}-01`;
       } else {
-        // 30 days = 1 month, 60 days = 2 months, 90 days = 3 months
-        monthsToAdd = Math.round(parseInt(period) / 30);
-        const liEnd = new Date(liStart);
-        liEnd.setMonth(liEnd.getMonth() + monthsToAdd);
-        liEnd.setDate(0); // last day of nth month
-        const liStartStr = liStart.toISOString().split('T')[0];
-        const liEndStr   = liEnd.toISOString().split('T')[0];
-        queries.linkedin = buildLinkedInQuery(linkedinFilter, liStartStr, liEndStr);
+        // 30 days = 1 month ahead, 60 = 2 months, 90 = 3 months
+        const monthsToAdd = Math.round(parseInt(period) / 30);
+        let endMonth = sm + monthsToAdd;
+        let endYear  = sy;
+        if (endMonth > 12) { endMonth -= 12; endYear += 1; }
+        liEndStr = `${endYear}-${String(endMonth).padStart(2,'0')}-01`;
       }
+
+      queries.linkedin = buildLinkedInQuery(linkedinFilter, liStartStr, liEndStr);
     }
 
     if (sources.includes('Marketo')) {
@@ -600,6 +600,11 @@
       document.getElementById('reportName').value = r.reportName || '';
       document.getElementById('landingUrl').value = r.landingUrl || '';
 
+      // Publish date
+      if (r.publishDate) {
+        document.getElementById('publishDate').value = r.publishDate;
+      }
+
       // Chapter scope
       if (r.chapterScope) {
         document.getElementById('chapterScope').value = r.chapterScope;
@@ -610,7 +615,6 @@
       // Period
       if (r.period?.type === 'custom') {
         setPeriod(document.querySelector('.period-btn:last-child'), 'custom');
-        document.getElementById('startDate').value = r.period.startDate || '';
         document.getElementById('endDate').value = r.period.endDate || '';
       } else {
         const days = r.period?.days?.toString() || '30';
@@ -658,6 +662,7 @@
 
       statusEl.style.background = '#E1F5EE';
       statusEl.style.color = '#0F6E56';
+      statusEl.style.display = 'block';
       statusEl.textContent = flagged.length
         ? `✓ Request loaded — ${flagged.length} field(s) highlighted for review`
         : '✓ Request loaded successfully — review and resubmit';
