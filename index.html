@@ -266,7 +266,7 @@
 
 <script>
   // ── Config ──────────────────────────────────────────
-  const FLASK_API = 'http://zteuintrawebqa1.bain.com:5000/submit-request';
+  const FLASK_API = 'http://10.193.41.9:5000/submit-request';
 
   // ── State ──────────────────────────────────────────
   const tags = {}; // kept for compatibility
@@ -355,8 +355,8 @@
       linkedinFilter = `[*Campaign Name] LIKE '%${name}%'`;
     }
 
-    // Strip year (4-digit number) from end of report name for Marketo fil    // Strip year from report name for Marketo filter
-    const nameForMarketo = name.replace(/ *(19|20)\d{2} *$/, '').trim();
+    // Strip year (4-digit number) from end of report name for Marketo filter
+    const nameForMarketo = name.replace(/\s*\b(19|20)\d{2}\b\s*$/, '').trim();
 
     return { gaFilter, linkedinFilter, reportName: `%${nameForMarketo}%` };
   }
