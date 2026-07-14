@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin — Report Requests</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #CC0000; --brand-dark: #990000; --brand-light: rgba(204,0,0,0.07);
+    --text: #1a1a1a; --text-dim: #555; --text-muted: #888;
+    --border: #e0d9d2; --bg: #F2EEE9; --bg-card: #fff; --bg-input: #F8F5F0;
+    --green: #0F6E56; --green-bg: #E1F5EE; --green-border: #9FE1CB;
+    --amber: #7A5700; --amber-bg: #FFF8E7; --amber-border: #F5DFA0;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* Login gate */
+  .login-overlay { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 999; }
+  .login-box { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; width: 340px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+  .login-box h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .login-box p { font-size: 13px; color: var(--text-muted); margin-bottom: 1.5rem; }
+  .login-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); font-size: 14px; font-family: inherit; outline: none; margin-bottom: 10px; }
+  .login-box input:focus { border-color: var(--brand); }
+  .login-btn { width: 100%; padding: 11px; background: var(--brand); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .login-btn:hover { background: var(--brand-dark); }
+  .login-error { font-size: 12px; color: var(--brand); margin-top: 6px; display: none; }
+
+  /* Main layout */
+  .main { display: none; }
+  .topbar { background: white; border-bottom: 2px solid var(--brand); padding: 1rem 2rem; display: flex; align-items: center; gap: 14px; }
+  .logo-bar { width: 5px; height: 36px; background: var(--brand); border-radius: 3px; }
+  .topbar h1 { font-size: 18px; font-weight: 700; }
+  .topbar p { font-size: 12px; color: var(--text-muted); font-family: monospace; margin-top: 2px; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .admin-badge { background: var(--brand-light); color: var(--brand); border: 1px solid rgba(204,0,0,0.2); border-radius: 20px; padding: 4px 14px; font-size: 12px; font-weight: 700; font-family: monospace; }
+  .logout-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 14px; font-size: 12px; color: var(--text-muted); cursor: pointer; font-family: inherit; }
+  .logout-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+  .content { max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* Stats bar */
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+  .stat-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .stat-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 6px; }
+  .stat-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  .stat-value.red { color: var(--brand); }
+  .stat-value.green { color: var(--green); }
+  .stat-value.amber { color: var(--amber); }
+
+  /* Request list */
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .refresh-btn { background: none; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; color: var(--text-muted); cursor: pointer; font-family: inherit; }
+  .refresh-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+  .request-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+  .request-card.pending { border-left: 4px solid #F5A623; }
+  .request-card.approved { border-left: 4px solid var(--green); }
+  .request-card.needs_modification { border-left: 4px solid var(--brand); }
+  .request-card.running { border-left: 4px solid #534AB7; }
+  .request-card.completed { border-left: 4px solid var(--green); opacity: 0.85; }
+  .request-card.closed { border-left: 4px solid #888; opacity: 0.85; }
+  .request-card.discarded { border-left: 4px solid #c97b4b; opacity: 0.80; }
+  .dot-closed { background: #888; }
+  .dot-discarded { background: #c97b4b; }
+  .badge-closed { background: #ebebeb; color: #444; border: 1px solid #bbb; font-weight:600; }
+  .badge-discarded { background: #fdf0e6; color: #8a4a1a; border: 1px solid #e8c4a0; font-weight:600; }
+
+  .request-header { padding: 1rem 1.25rem; display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+  .request-header:hover { background: var(--bg-input); }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-pending { background: #F5A623; }
+  .dot-approved { background: var(--green); }
+  .dot-needs_modification { background: var(--brand); }
+  .dot-running { background: #534AB7; animation: pulse 1s infinite; }
+  .dot-completed { background: var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .req-name { font-weight: 600; font-size: 14px; flex: 1; }
+  .req-meta { font-size: 12px; color: var(--text-muted); font-family: monospace; }
+  .req-id { font-size: 11px; color: var(--text-muted); font-family: monospace; background: var(--bg); padding: 3px 8px; border-radius: 20px; border: 1px solid var(--border); }
+  .status-badge { font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; font-family: monospace; white-space: nowrap; }
+  .badge-pending { background: #FFF8E7; color: #7A5700; border: 1px solid #F5DFA0; }
+  .badge-approved { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-needs_modification { background: var(--brand-light); color: var(--brand); border: 1px solid rgba(204,0,0,0.2); }
+  .badge-running { background: rgba(83,74,183,0.08); color: #534AB7; border: 1px solid rgba(83,74,183,0.2); }
+  .badge-completed { background: #E1F5EE; color: #0F6E56; border: 1px solid #A8DDC9; font-weight:600; }
+  .expand-icon { font-size: 18px; color: var(--text-muted); transition: transform 0.2s; }
+  .request-card.expanded .expand-icon { transform: rotate(180deg); }
+
+  /* Detail panel */
+  .request-detail { display: none; border-top: 1px solid var(--border); padding: 1.25rem; background: #FDFCFB; }
+  .request-card.expanded .request-detail { display: block; }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+  .detail-item label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); display: block; margin-bottom: 4px; }
+  .detail-item span { font-size: 13px; color: var(--text); font-family: monospace; }
+
+  /* SQL tabs */
+  .sql-section { margin-bottom: 1.25rem; }
+  .sql-section h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 10px; }
+  .sql-tabs { display: flex; gap: 0; background: white; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; width: fit-content; margin-bottom: 10px; }
+  .sql-tab-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 4px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; font-family: monospace; transition: all 0.15s; }
+  .sql-tab-btn.active { background: var(--brand); color: white; }
+  .sql-panel { display: none; }
+  .sql-panel.active { display: block; }
+  .sql-editor { width: 100%; font-family: 'Courier New', monospace; font-size: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #1a1a1a; color: #f8f8f2; min-height: 120px; resize: vertical; outline: none; line-height: 1.6; }
+  .sql-editor:focus { border-color: var(--brand); }
+
+  /* Actions */
+  .action-row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .btn-approve { padding: 10px 24px; background: var(--green); color: white; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
+  .btn-approve:hover { background: #0a5240; }
+  .btn-modify { padding: 10px 24px; background: white; color: var(--brand); border: 1px solid var(--brand); border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+  .btn-modify:hover { background: var(--brand-light); }
+  .modify-section { display: none; margin-top: 12px; flex: 100%; }
+  .modify-section.show { display: block; }
+  .modify-section textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); font-size: 13px; font-family: inherit; resize: vertical; min-height: 70px; outline: none; }
+  .modify-section textarea:focus { border-color: var(--brand); }
+  .modify-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 8px; }
+  .field-checklist { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+  .fc-item { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; background: var(--bg-input); font-size: 12px; color: var(--text-dim); cursor: pointer; transition: all 0.15s; user-select: none; }
+  .fc-item:has(input:checked) { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); font-weight: 600; }
+  .fc-item input { accent-color: var(--amber); width: 13px; height: 13px; }
+  .btn-send-feedback { padding: 9px 16px; background: var(--green); color: white; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .btn-send-feedback:hover { opacity: 0.9; }
+  .copy-success { font-size: 12px; color: var(--green); font-weight: 600; display: none; margin-top: 6px; }
+  .frozen-feedback { background: var(--amber-bg); border: 1px solid var(--amber-border); border-radius: var(--radius-sm); padding: 1rem; width: 100%; }
+  .frozen-title { font-size: 13px; font-weight: 700; color: var(--amber); margin-bottom: 8px; }
+  .frozen-fields { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .frozen-tag { background: white; border: 1px solid var(--amber-border); color: var(--amber); border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+  .frozen-note { font-size: 13px; color: var(--amber); font-style: italic; margin-top: 4px; }
+
+  .action-status { font-size: 13px; padding: 8px 14px; border-radius: var(--radius-sm); display: none; margin-top: 8px; }
+  .action-status.ok { background: var(--green-bg); color: var(--green); display: block; }
+  .action-status.err { background: #FAECE7; color: #993C1D; display: block; }
+
+  .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+  .empty-state .icon { font-size: 48px; margin-bottom: 1rem; }
+  .empty-state p { font-size: 15px; }
+
+  @media (max-width: 700px) { .stats { grid-template-columns: 1fr 1fr; } .detail-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- Login Gate -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>Admin Access</h2>
+    <p>Marketing Analytics · Report Automation</p>
+    <input type="password" id="pinInput" placeholder="Enter admin PIN" onkeydown="if(event.key==='Enter') checkPin()" />
+    <button class="login-btn" onclick="checkPin()">Sign in</button>
+    <div class="login-error" id="loginError">Incorrect PIN. Please try again.</div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div class="main" id="mainApp">
+  <div class="topbar">
+    <div class="logo-bar"></div>
+    <div>
+      <h1>Report Requests</h1>
+      <p>Marketing Analytics · Admin Dashboard</p>
+    </div>
+    <div class="topbar-right">
+      <span class="admin-badge">mohd.qasim@bain.com</span>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total requests</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending review</div>
+        <div class="stat-value amber" id="statPending">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Closed</div>
+        <div class="stat-value green" id="statCompleted">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Needs modification</div>
+        <div class="stat-value red" id="statModify">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Discarded</div>
+        <div class="stat-value" style="color:#888;" id="statDiscarded">0</div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      Incoming Requests
+      <button class="refresh-btn" onclick="loadRequests()">↻ Refresh</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+      <input type="text" id="searchInput" placeholder="🔍 Search by Request ID, report name, or requester..." oninput="filterRequests()" style="flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;box-sizing:border-box;" />
+      <select id="ticketLimit" onchange="loadRequests()" style="padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:white;cursor:pointer;">
+        <option value="10" selected>Show 10</option>
+        <option value="20">Show 20</option>
+        <option value="50">Show 50</option>
+        <option value="0">Show all</option>
+      </select>
+    </div>
+
+    <div id="requestList"></div>
+  </div>
+</div>
+
+<script>
+  // ── Config ──────────────────────────────────────────
+  const FLASK_API = 'https://ma-reports.bain.com';
+  const ADMIN_PIN = '2025MA'; // Change this to your preferred PIN
+
+  // ── Auth ────────────────────────────────────────────
+  function checkPin() {
+    const val = document.getElementById('pinInput').value;
+    if (val === ADMIN_PIN) {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('mainApp').style.display = 'block';
+      loadRequests();
+    } else {
+      document.getElementById('loginError').style.display = 'block';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinInput').focus();
+    }
+  }
+
+  function logout() {
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('pinInput').value = '';
+  }
+
+  // ── Copy Request ID without expanding card ────────────
+  function copyRequestId(event, requestId) {
+    event.stopPropagation();
+    navigator.clipboard.writeText(requestId).then(() => {
+      const el = event.target.closest('.req-id');
+      const original = el.innerHTML;
+      el.innerHTML = `${requestId} <span style="font-size:10px;color:var(--green);">✓ Copied</span>`;
+      setTimeout(() => { el.innerHTML = original; }, 1500);
+    });
+  }
+
+  // ── Load requests ────────────────────────────────────
+  let allRequests = [];
+
+  let isFetching = false;
+
+  async function loadRequests() {
+    if (isFetching) return;
+    isFetching = true;
+    try {
+      const res = await fetch(`${FLASK_API}/admin/requests`);
+      const requests = await res.json();
+      allRequests = requests;
+      renderRequests(applyLimit(filterRequestsList(requests)));
+    } catch {
+      if (allRequests.length === 0) {
+        allRequests = DEMO_REQUESTS;
+        renderRequests(applyLimit(filterRequestsList(DEMO_REQUESTS)));
+      }
+    } finally {
+      isFetching = false;
+    }
+  }
+
+  function applyLimit(requests) {
+    const limit = parseInt(document.getElementById('ticketLimit')?.value || '10');
+    if (limit === 0) return requests;
+    return requests.slice(0, limit);
+  }
+
+  function filterRequestsList(requests) {
+    const term = document.getElementById('searchInput')?.value.trim().toLowerCase();
+    if (!term) return requests;
+    return requests.filter(r =>
+      (r.requestId || '').toLowerCase().includes(term) ||
+      (r.reportName || '').toLowerCase().includes(term) ||
+      (r.user?.name || '').toLowerCase().includes(term) ||
+      (r.user?.email || '').toLowerCase().includes(term)
+    );
+  }
+
+  function filterRequests() {
+    const term = document.getElementById('searchInput')?.value.trim();
+    if (term) {
+      // Search — show all matching regardless of limit
+      renderRequests(filterRequestsList(allRequests));
+    } else {
+      // No search — apply limit
+      renderRequests(applyLimit(allRequests));
+    }
+  }
+
+  // ── Track expanded cards, modification panels, and typed content ──────────
+  const expandedCards = new Set();
+  const modifyOpenCards = new Set();
+  const modifyState = {}; // stores { checkedFields: [], note: '' } per requestId
+  const sqlEdits = {};    // stores edited SQL per requestId per source
+  let isTyping = false;
+  let typingTimer = null;
+
+  function markTyping() {
+    isTyping = true;
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => { isTyping = false; }, 5000);
+  }
+
+  function saveSqlEdit(requestId, source) {
+    const el = document.getElementById(`sqltxt-${requestId}-${source}`);
+    if (!el) return;
+    if (!sqlEdits[requestId]) sqlEdits[requestId] = {};
+    sqlEdits[requestId][source] = el.value;
+    // Mark this textarea as locked — won't be overwritten by refresh
+    el.dataset.locked = 'true';
+    markTyping();
+  }
+
+  function saveModifyState(requestId) {
+    const checked = [...document.querySelectorAll(`#modify-${requestId} .fc-item input:checked`)]
+      .map(cb => cb.value);
+    const note = document.getElementById('modifynote-' + requestId)?.value || '';
+    modifyState[requestId] = { checkedFields: checked, note };
+  }
+
+  // Track last known status per card for smart diffing
+  const _lastStatus = {};
+
+  function renderRequests(requests) {
+    const list = document.getElementById('requestList');
+    // Always count from ALL requests, not just visible ones
+    const counts = { total: allRequests.length, pending: 0, completed: 0, needs_modification: 0, discarded: 0 };
+    allRequests.forEach(r => {
+      if (r.status === 'pending') counts.pending++;
+      else if (r.status === 'closed') counts.completed++;
+      else if (r.status === 'needs_modification') counts.needs_modification++;
+      else if (r.status === 'discarded') counts.discarded++;
+    });
+    document.getElementById('statTotal').textContent = counts.total;
+    document.getElementById('statPending').textContent = counts.pending;
+    document.getElementById('statCompleted').textContent = counts.completed;
+    document.getElementById('statModify').textContent = counts.needs_modification;
+    document.getElementById('statDiscarded').textContent = counts.discarded;
+
+    if (requests.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>No requests yet. They'll appear here when users submit the form.</p></div>`;
+      return;
+    }
+
+    // Check if full re-render needed (new tickets or order changed)
+    const currentIds = requests.map(r => r.requestId).join(',');
+    const existingIds = Array.from(list.querySelectorAll('.request-card')).map(el => el.id.replace('card-','')).join(',');
+    const needsFullRender = currentIds !== existingIds;
+
+    if (needsFullRender) {
+      // Full render — new tickets or order changed
+      list.innerHTML = requests.map((r, i) => buildCardHtml(r, i)).join('');
+      requests.forEach(r => { _lastStatus[r.requestId] = r.status; });
+      _restoreEdits(requests);
+      return;
+    }
+
+    // Smart update — only re-render cards whose status changed
+    requests.forEach((r, i) => {
+      if (_lastStatus[r.requestId] !== r.status) {
+        const existingCard = document.getElementById(`card-${r.requestId}`);
+        if (existingCard && !modifyOpenCards.has(r.requestId)) {
+          existingCard.outerHTML = buildCardHtml(r, i);
+          _lastStatus[r.requestId] = r.status;
+        }
+      }
+    });
+    _restoreEdits(requests);
+  }
+
+  function buildCardHtml(r, i) {
+    const isNeedsMod = r.status === 'needs_modification';
+    const flagged = r.flaggedFields || [];
+    const modNote = r.modificationNote || '';
+
+    return `
+      <div class="request-card ${r.status}${expandedCards.has(r.requestId) ? ' expanded' : ''}" id="card-${r.requestId}">
+        <div class="request-header" onclick="toggleCard('${r.requestId}')">
+          <div class="status-dot dot-${r.status}"></div>
+          <div class="req-name">${r.reportName}</div>
+          <div class="req-meta">${r.user?.name || 'Unknown'} &nbsp;·&nbsp; ${formatDate(r.submittedAt)}</div>
+          <span class="status-badge badge-${r.status}">${formatStatus(r.status)}</span>
+          <span class="req-id" onclick="copyRequestId(event, '${r.requestId}')" title="Click to copy" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;">${r.requestId} <span style="font-size:10px;">📋</span></span>
+          <span class="expand-icon">▾</span>
+        </div>
+        <div class="request-detail">
+          <div class="detail-grid">
+            <div class="detail-item"><label>Requested by</label><span>${r.user?.name} (${r.user?.email})</span></div>
+            <div class="detail-item"><label>Landing URL</label><span>${r.landingUrl}</span></div>
+            <div class="detail-item"><label>Analysis period</label><span>${
+              r.period?.type === 'custom' 
+                ? r.period.startDate + ' → ' + r.period.endDate 
+                : r.period?.type === 'from_publish'
+                  ? `First ${r.period?.days} days from ${r.period?.startDate || 'publish date'} → ${r.period?.endDate || ''}`
+                  : 'Last ' + r.period?.days + ' days'
+            }</span></div>
+            <div class="detail-item"><label>Data sources</label><span>${(r.dataSources||[]).join(', ')}</span></div>
+            <div class="detail-item"><label>Data segmentation</label><span>${r.sliceBy || '—'}</span></div>
+            <div class="detail-item"><label>Priority account list</label><span>${r.slide2?.accountListOption === 'upload' ? 'Uploaded' : 'Default'}</span></div>
+          </div>
+
+          <div class="sql-section">
+            <h4>Generated SQL Queries — Review & Edit Before Approving</h4>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+              <div class="sql-tabs" id="tabs-${r.requestId}">
+                ${r.generatedQueries?.ga ? `<button class="sql-tab-btn active" onclick="switchSql('${r.requestId}','ga',this)">GA</button>` : ''}
+                ${r.generatedQueries?.linkedin ? `<button class="sql-tab-btn ${!r.generatedQueries?.ga ? 'active' : ''}" onclick="switchSql('${r.requestId}','linkedin',this)">LinkedIn</button>` : ''}
+                ${r.generatedQueries?.marketo ? `<button class="sql-tab-btn ${!r.generatedQueries?.ga && !r.generatedQueries?.linkedin ? 'active' : ''}" onclick="switchSql('${r.requestId}','marketo',this)">Marketo</button>` : ''}
+                ${r.generatedQueries?.url_mapping ? `<button class="sql-tab-btn" onclick="switchSql('${r.requestId}','url_mapping',this)">URL Map</button>` : ''}
+              </div>
+              <button onclick="resetSqlEdits('${r.requestId}')" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;font-size:11px;color:var(--text-muted);cursor:pointer;font-family:inherit;" title="Reset all queries to original">↺ Reset to original</button>
+            </div>
+            ${r.generatedQueries?.ga ? `<div class="sql-panel active" id="sql-${r.requestId}-ga"><textarea class="sql-editor" id="sqltxt-${r.requestId}-ga" oninput="saveSqlEdit('${r.requestId}','ga')">${r.generatedQueries.ga}</textarea></div>` : ''}
+            ${r.generatedQueries?.linkedin ? `<div class="sql-panel" id="sql-${r.requestId}-linkedin"><textarea class="sql-editor" id="sqltxt-${r.requestId}-linkedin" oninput="saveSqlEdit('${r.requestId}','linkedin')">${r.generatedQueries.linkedin}</textarea></div>` : ''}
+            ${r.generatedQueries?.marketo ? `<div class="sql-panel" id="sql-${r.requestId}-marketo"><textarea class="sql-editor" id="sqltxt-${r.requestId}-marketo" oninput="saveSqlEdit('${r.requestId}','marketo')">${r.generatedQueries.marketo}</textarea></div>` : ''}
+            ${r.generatedQueries?.url_mapping ? `<div class="sql-panel" id="sql-${r.requestId}-url_mapping"><textarea class="sql-editor" id="sqltxt-${r.requestId}-url_mapping" oninput="saveSqlEdit('${r.requestId}','url_mapping')">${r.generatedQueries.url_mapping}</textarea></div>` : ''}
+          </div>
+
+          <div class="action-row" id="actions-${r.requestId}">
+            ${isNeedsMod ? `
+              <!-- FROZEN: show submitted feedback -->
+              <div class="frozen-feedback">
+                <div class="frozen-title">✎ Needs Modification — Feedback Sent</div>
+                ${flagged.length ? `<div class="frozen-fields">${flagged.map(f => `<span class="frozen-tag">${f}</span>`).join('')}</div>` : ''}
+                ${modNote ? `<div class="frozen-note">${modNote}</div>` : ''}
+                <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+                  <button class="btn-modify" onclick="reopenModify('${r.requestId}')">✎ Edit Feedback</button>
+                  <button onclick="toggleDiscardPanel('${r.requestId}')" style="padding:9px 16px;background:none;border:1px solid #993C1D;color:#993C1D;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">🗑 Discard Request</button>
+                </div>
+                <div id="discard-panel-${r.requestId}" style="display:none;margin-top:12px;background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:14px;">
+                  <p style="font-size:13px;color:#555;margin-bottom:8px;">Please provide a reason for discarding this request:</p>
+                  <textarea id="discard-reason-${r.requestId}" placeholder="Enter reason..." oninput="updateDiscardBtn('${r.requestId}')" style="width:100%;min-height:70px;font-family:inherit;font-size:13px;padding:8px;border:1px solid var(--border);border-radius:6px;resize:vertical;box-sizing:border-box;"></textarea>
+                  <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
+                    <button onclick="toggleDiscardPanel('${r.requestId}')" style="padding:8px 16px;background:white;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+                    <button id="discard-confirm-${r.requestId}" onclick="confirmDiscard('${r.requestId}')" disabled style="padding:8px 16px;background:#ccc;color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:not-allowed;font-family:inherit;">🗑 Discard</button>
+                  </div>
+                </div>
+              </div>
+            ` : r.status !== 'completed' && r.status !== 'running' && r.status !== 'closed' && r.status !== 'error' && r.status !== 'discarded' ? `
+              <button class="btn-approve" onclick="approveRequest('${r.requestId}')">✓ Approve & Run</button>
+              <button class="btn-modify" onclick="toggleModify('${r.requestId}')">✎ Needs Modification</button>
+              <button onclick="toggleDiscardPanel('${r.requestId}')" style="padding:10px 16px;background:none;border:1px solid #aaa;color:#666;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🗑 Discard</button>
+              ${r.accountInputFile ? `<a href="${FLASK_API.replace('/submit-request','')}/downloads/${r.accountInputFile}" target="_blank" style="padding:10px 16px;background:none;border:1px solid var(--brand);color:var(--brand);border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:none;">👁 Preview PA List</a>` : ''}
+            </div>
+            <div id="discard-panel-${r.requestId}" style="display:none;margin-top:12px;background:#fafafa;border:1px solid var(--border);border-radius:8px;padding:14px;">
+              <p style="font-size:13px;color:#555;margin-bottom:8px;">Please provide a reason for discarding this request:</p>
+              <textarea id="discard-reason-${r.requestId}" placeholder="Enter reason..." oninput="updateDiscardBtn('${r.requestId}')" style="width:100%;min-height:70px;font-family:inherit;font-size:13px;padding:8px;border:1px solid var(--border);border-radius:6px;resize:vertical;box-sizing:border-box;"></textarea>
+              <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
+                <button onclick="toggleDiscardPanel('${r.requestId}')" style="padding:8px 16px;background:white;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+                <button id="discard-confirm-${r.requestId}" onclick="confirmDiscard('${r.requestId}')" disabled style="padding:8px 16px;background:#ccc;color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:not-allowed;font-family:inherit;">🗑 Discard</button>
+              </div>
+            </div>`
+            : r.status === 'completed' ? `
+              <div style="width:100%;">
+                <div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:10px;">✅ ${Object.keys(r.downloadLinks||{}).length} CSV file(s) ready — select files to download</div>
+                <div id="dl-list-${r.requestId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+                  ${Object.entries(r.downloadLinks||{}).map(([src,info]) => {
+                    const srcLabel = src === 'url_mapping' ? 'URL Mapping' : src === 'input_accounts' ? 'Input Accounts' : src === 'request_summary' ? 'Request Summary' : src.toUpperCase();
+                    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);cursor:pointer;font-size:13px;"><input type="checkbox" checked data-url="${typeof info === 'object' ? info.url : info}" data-filename="${typeof info === 'object' ? info.filename : src+'.csv'}" style="accent-color:var(--green);width:15px;height:15px;" /><span style="font-weight:600;color:var(--text);">${srcLabel} CSV</span><span style="color:var(--text-muted);font-family:monospace;margin-left:6px;">${typeof info === 'object' ? info.rows : '?'} rows</span>${(typeof info === 'object' && info.error) ? '<span style="color:#993C1D;font-size:11px;margin-left:6px;">⚠ query error</span>' : ''}</label>`;
+                  }).join('')}
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                  <button onclick="downloadSelected('${r.requestId}')" class="btn-approve" style="flex:1;">↓ Download Selected Files</button>
+                  <button onclick="rerunRequest('${r.requestId}')" class="btn-modify" style="white-space:nowrap;">↺ Re-run Queries</button>
+                  <button onclick="closeRequest('${r.requestId}')" style="padding:10px 16px;background:#555;color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">✓ Close Request</button>
+                </div>
+                ${(r.errors||[]).length ? `<div style="font-size:12px;color:#993C1D;margin-top:8px;">⚠ ${r.errors.join(' | ')}</div>` : ''}
+              </div>` : r.status === 'closed' ? `
+              <div style="width:100%;">
+                <div style="font-size:13px;color:#666;margin-bottom:8px;">🔒 Request closed${r.closedAt ? ' · ' + formatDate(r.closedAt) : ''}</div>
+                ${Object.keys(r.downloadLinks||{}).length ? `
+                <div id="dl-list-${r.requestId}" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+                  ${Object.entries(r.downloadLinks||{}).map(([src,info]) => `
+                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input);cursor:pointer;font-size:13px;">
+                      <input type="checkbox" checked data-url="${typeof info === 'object' ? info.url : info}" data-filename="${typeof info === 'object' ? info.filename : src+'.csv'}" style="accent-color:#aaa;width:15px;height:15px;" />
+                      <span style="font-weight:600;color:var(--text);">${src.toUpperCase()} CSV</span>
+                      <span style="color:var(--text-muted);font-family:monospace;margin-left:6px;">${typeof info === 'object' ? info.rows : '?'} rows</span>
+                    </label>`).join('')}
+                </div>
+                <button onclick="downloadSelected('${r.requestId}')" class="btn-approve" style="width:100%;">↓ Download Files</button>` : ''}
+              </div>`
+            : r.status === 'discarded' ? `
+              <div style="font-size:13px;color:#aaa;">🗑 Request discarded${r.discardReason ? ` — <em>${r.discardReason}</em>` : ''}</div>`
+            : r.status === 'error' ? `
+              <div style="width:100%;">
+                <div style="font-size:13px;color:#993C1D;margin-bottom:10px;">❌ Pipeline failed — edit queries above and re-run</div>
+                <div style="display:flex;gap:8px;">
+                  <button onclick="rerunRequest('${r.requestId}')" class="btn-approve">↺ Re-run Queries</button>
+                  <button onclick="markComplete('${r.requestId}')" class="btn-modify">✓ Mark Complete</button>
+                </div>
+              </div>`
+            : r.status === 'running' ? `
+              <div style="width:100%;">
+                <div style="font-size:13px;color:#534AB7;font-weight:600;margin-bottom:10px;">⏳ Pipeline running...</div>
+                <button onclick="forceStopRequest('${r.requestId}')" style="padding:9px 16px;background:none;border:1px solid #993C1D;color:#993C1D;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">⏹ Force Stop</button>
+              </div>`
+            : '<span style="color:#534AB7;font-size:13px;font-weight:600;">⏳ Pipeline running...</span>'}
+
+            <div class="modify-section" id="modify-${r.requestId}">
+              <div class="modify-label">Which fields need correction?</div>
+              <div class="field-checklist">
+                <label class="fc-item"><input type="checkbox" value="Report name" /> Report name</label>
+                <label class="fc-item"><input type="checkbox" value="Landing page URL" /> Landing page URL</label>
+                <label class="fc-item"><input type="checkbox" value="Chapter URLs" /> Chapter URLs</label>
+                <label class="fc-item"><input type="checkbox" value="Report publish date" /> Report publish date</label>
+                <label class="fc-item"><input type="checkbox" value="Analysis period (custom dates)" /> Analysis period (custom dates)</label>
+                <label class="fc-item"><input type="checkbox" value="LinkedIn campaign names" /> LinkedIn campaign names</label>
+                <label class="fc-item"><input type="checkbox" value="Priority account list" /> Priority account list</label>
+              </div>
+              <div class="modify-label" style="margin-top:10px;">Additional feedback</div>
+              <textarea placeholder="Add any extra context or instructions for the user..." id="modifynote-${r.requestId}" oninput="markTyping(); saveModifyState('${r.requestId}')"></textarea>
+              <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+                <button class="btn-send-feedback" style="background:var(--brand-dark);" id="markModBtn-${r.requestId}" onclick="sendModification('${r.requestId}')">✓ Mark as Needs Modification</button>
+              </div>
+            </div>
+            <div class="action-status" id="actStatus-${r.requestId}"></div>
+          </div>
+        </div>
+      </div>`;
+  } // end buildCardHtml
+
+  function _restoreEdits(requests) {
+    // Restore SQL edits after render — only for locked textareas
+    requests.forEach(r => {
+      const id = r.requestId;
+      if (sqlEdits[id]) {
+        ['ga','linkedin','marketo'].forEach(src => {
+          const el = document.getElementById(`sqltxt-${id}-${src}`);
+          if (el && sqlEdits[id][src]) {
+            el.value = sqlEdits[id][src];
+            el.dataset.locked = 'true';
+            el.style.borderColor = '#F5A623';
+            el.style.boxShadow = '0 0 0 2px rgba(245,166,35,0.2)';
+          }
+        });
+      }
+    });
+    requests.forEach(r => {
+      const id = r.requestId;
+      if (modifyOpenCards.has(id)) {
+        const modEl = document.getElementById('modify-' + id);
+        if (modEl) {
+          modEl.classList.add('show');
+          const saved = modifyState[id];
+          if (saved) {
+            document.querySelectorAll(`#modify-${id} .fc-item input`).forEach(cb => {
+              cb.checked = saved.checkedFields.includes(cb.value);
+              if (cb.checked) cb.closest('.fc-item').classList.add('active');
+            });
+            const noteEl = document.getElementById('modifynote-' + id);
+            if (noteEl && saved.note) noteEl.value = saved.note;
+          }
+        }
+      }
+    });
+  }
+
+  function toggleCard(id) {
+    const card = document.getElementById('card-' + id);
+    card.classList.toggle('expanded');
+    if (card.classList.contains('expanded')) expandedCards.add(id);
+    else expandedCards.delete(id);
+  }
+
+  function reopenModify(id) {
+    modifyOpenCards.add(id);
+    document.getElementById('modify-' + id).classList.add('show');
+    // Reset button back to Mark as Needs Modification
+    const markBtn = document.getElementById('markModBtn-' + id);
+    if (markBtn) {
+      markBtn.textContent = '✓ Mark as Needs Modification';
+      markBtn.style.background = '';
+      markBtn.disabled = false;
+    }
+  }
+
+  function switchSql(reqId, source, btn) {
+    document.querySelectorAll(`#tabs-${reqId} .sql-tab-btn`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ['ga','linkedin','marketo','url_mapping'].forEach(s => {
+      const panel = document.getElementById(`sql-${reqId}-${s}`);
+      if (panel) panel.classList.toggle('active', s === source);
+    });
+  }
+
+  function toggleModify(id) {
+    const modEl = document.getElementById('modify-' + id);
+    modEl.classList.toggle('show');
+    if (modEl.classList.contains('show')) modifyOpenCards.add(id);
+    else modifyOpenCards.delete(id);
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const istString = d.toLocaleString('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    return istString.replace(',', '');
+  }
+
+  function formatStatus(s) {
+    return { pending: 'Pending Review', approved: 'Approved', needs_modification: 'Needs Modification', running: 'Running', completed: 'Completed', closed: 'Closed', error: 'Error', discarded: 'Discarded' }[s] || s;
+  }
+
+  // ── Query validation ─────────────────────────────────
+  function validateQueries(requestId) {
+    const sources = ['ga', 'linkedin', 'marketo', 'url_mapping'];
+    const labels  = { ga: 'GA Query', linkedin: 'LinkedIn Query', marketo: 'Marketo Query', url_mapping: 'URL Map Query' };
+    const results = [];
+
+    sources.forEach(s => {
+      const el = document.getElementById(`sqltxt-${requestId}-${s}`);
+      if (!el) return;
+      const q = el.value.trim();
+      if (!q) return;
+
+      const warnings = [];
+      const errors   = [];
+
+      // Must have SELECT and FROM
+      if (!/SELECT/i.test(q)) errors.push('Missing SELECT statement');
+      if (!/FROM/i.test(q))   errors.push('Missing FROM clause');
+
+      // Should have WHERE (skip for url_mapping which uses INNER JOIN)
+      if (s !== 'url_mapping' && !/WHERE/i.test(q)) warnings.push('No WHERE clause — query may return all rows');
+
+      // Date format check (skip for url_mapping which uses INNER JOIN for filtering)
+      const dates = q.match(/'(\d{4}-\d{2}-\d{2})'/g) || [];
+      if (s !== 'url_mapping' && /BETWEEN/i.test(q) && dates.length < 2) warnings.push('BETWEEN detected but fewer than 2 dates found — check date range');
+
+      // Unclosed quotes
+      const singleQuotes = (q.match(/'/g) || []).length;
+      if (singleQuotes % 2 !== 0) errors.push('Unclosed single quote detected');
+
+      // Unclosed brackets
+      const openBrackets  = (q.match(/\[/g) || []).length;
+      const closeBrackets = (q.match(/\]/g) || []).length;
+      if (openBrackets !== closeBrackets) errors.push('Mismatched square brackets [ ]');
+
+      // Temp table warning
+      if (/#\w+/.test(q)) warnings.push('Uses a temp table (#) — ensure it exists on SQL Server before running');
+
+      // Empty LIKE filter
+      if (/LIKE\s*'%%'/i.test(q)) warnings.push('LIKE filter is empty (%%) — will match all rows');
+
+      // Table name check
+      const fromMatch = q.match(/FROM\s+(\S+)/i);
+      if (fromMatch && fromMatch[1] === 'undefined') errors.push('Table name is undefined');
+
+      results.push({ source: s, label: labels[s], warnings, errors, query: q });
+    });
+
+    return results;
+  }
+
+  function showValidationModal(requestId, results, onApprove) {
+    // Remove existing modal if any
+    const existing = document.getElementById('validationModal');
+    if (existing) existing.remove();
+
+    const hasErrors   = results.some(r => r.errors.length > 0);
+    const hasWarnings = results.some(r => r.warnings.length > 0);
+    const allClean    = !hasErrors && !hasWarnings;
+
+    let html = `
+      <div id="validationModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;">
+        <div style="background:white;border-radius:12px;padding:1.5rem;max-width:600px;width:100%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;padding-bottom:0.875rem;border-bottom:1px solid #e0d9d2;">
+            <div style="font-size:20px;">${allClean ? '✅' : hasErrors ? '❌' : '⚠️'}</div>
+            <div>
+              <div style="font-size:15px;font-weight:700;color:#1a1a1a;">Query Validation ${allClean ? '— All Clear' : hasErrors ? '— Errors Found' : '— Warnings Found'}</div>
+              <div style="font-size:12px;color:#888;margin-top:2px;">${results.filter(r=>r.errors.length||r.warnings.length).length} of ${results.length} queries need attention</div>
+            </div>
+          </div>`;
+
+    results.forEach(r => {
+      const icon = r.errors.length ? '❌' : r.warnings.length ? '⚠️' : '✅';
+      const color = r.errors.length ? '#993C1D' : r.warnings.length ? '#7A5700' : '#0F6E56';
+      const bg    = r.errors.length ? '#FAECE7' : r.warnings.length ? '#FFF8E7' : '#E1F5EE';
+      const border = r.errors.length ? '#F5C4B3' : r.warnings.length ? '#F5DFA0' : '#9FE1CB';
+
+      html += `
+        <div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:0.875rem;margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:700;color:${color};margin-bottom:${r.errors.length||r.warnings.length?'8px':'0'};">${icon} ${r.label}</div>
+          ${r.errors.map(e => `<div style="font-size:12px;color:#993C1D;margin-bottom:4px;">❌ ${e}</div>`).join('')}
+          ${r.warnings.map(w => `<div style="font-size:12px;color:#7A5700;margin-bottom:4px;">⚠ ${w}</div>`).join('')}
+        </div>`;
+    });
+
+    html += `
+          <div style="display:flex;gap:10px;margin-top:1.25rem;flex-wrap:wrap;">
+            ${allClean ? `
+              <button onclick="closeModal();(${onApprove})()" style="flex:1;padding:11px;background:#0F6E56;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">✓ Approve & Run</button>
+            ` : hasErrors ? `
+              <button onclick="closeModal()" style="flex:1;padding:11px;background:#CC0000;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Fix Errors First</button>
+            ` : `
+              <button onclick="closeModal();(${onApprove})()" style="flex:1;padding:11px;background:#0F6E56;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">✓ Approve Anyway</button>
+              <button onclick="closeModal()" style="padding:11px 20px;background:white;color:#CC0000;border:1px solid #CC0000;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">Review Queries</button>
+            `}
+          </div>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    // Close on backdrop click
+    document.getElementById('validationModal').addEventListener('click', e => {
+      if (e.target.id === 'validationModal') closeModal();
+    });
+  }
+
+  function closeModal() {
+    const m = document.getElementById('validationModal');
+    if (m) m.remove();
+  }
+
+  // ── Approve ──────────────────────────────────────────
+  async function approveRequest(requestId) {
+    // Step 1: validate queries first
+    const results = validateQueries(requestId);
+    const hasContent = results.length > 0;
+
+    if (hasContent) {
+      const onApprove = `async function() { await fireApprove('${requestId}') }`;
+      showValidationModal(requestId, results, onApprove);
+      return;
+    }
+    await fireApprove(requestId);
+  }
+
+  async function fireApprove(requestId) {
+    const queries = {};
+    ['ga','linkedin','marketo','url_mapping'].forEach(s => {
+      const el = document.getElementById(`sqltxt-${requestId}-${s}`);
+      if (el && el.value.trim()) queries[s] = el.value;
+    });
+    const statusEl = document.getElementById('actStatus-' + requestId);
+    try {
+      const res = await fetch(`${FLASK_API}/admin/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, finalQueries: queries })
+      });
+      if (!res.ok) throw new Error();
+      statusEl.className = 'action-status ok';
+      statusEl.textContent = '✓ Approved — pipeline is now running. You\'ll be notified on Teams when ready.';
+      document.getElementById('card-' + requestId).classList.remove('pending');
+      document.getElementById('card-' + requestId).classList.add('running');
+      setTimeout(loadRequests, 3000);
+    } catch {
+      statusEl.className = 'action-status err';
+      statusEl.textContent = '⚠ Could not connect to server. Make sure you\'re on VPN.';
+    }
+  }
+
+  // ── Discard from pending ──────────────────────────────
+  function toggleDiscardPanel(requestId) {
+    const panel = document.getElementById(`discard-panel-${requestId}`);
+    const reason = document.getElementById(`discard-reason-${requestId}`);
+    if (panel.style.display === 'none') {
+      panel.style.display = 'block';
+      reason.focus();
+    } else {
+      panel.style.display = 'none';
+      reason.value = '';
+      updateDiscardBtn(requestId);
+    }
+  }
+
+  function updateDiscardBtn(requestId) {
+    const reason = document.getElementById(`discard-reason-${requestId}`)?.value.trim();
+    const btn = document.getElementById(`discard-confirm-${requestId}`);
+    if (!btn) return;
+    if (reason) {
+      btn.disabled = false;
+      btn.style.background = '#993C1D';
+      btn.style.cursor = 'pointer';
+    } else {
+      btn.disabled = true;
+      btn.style.background = '#ccc';
+      btn.style.cursor = 'not-allowed';
+    }
+  }
+
+  async function confirmDiscard(requestId) {
+    const reason = document.getElementById(`discard-reason-${requestId}`)?.value.trim();
+    if (!reason) return;
+    try {
+      const res = await fetch(`${FLASK_API}/admin/discard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, reason })
+      });
+      if (!res.ok) throw new Error();
+      loadRequests();
+    } catch {
+      alert('Could not discard request. Make sure you are on VPN.');
+    }
+  }
+
+  // ── Discard request (from needs_modification) ─────────
+  async function discardRequest(requestId) {
+    if (!confirm('Discard this request? It will be marked as discarded and hidden from active view.')) return; return;
+    try {
+      const res = await fetch(`${FLASK_API}/admin/discard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId })
+      });
+      if (!res.ok) throw new Error();
+      loadRequests();
+    } catch {
+      alert('Could not discard request. Make sure you are on VPN.');
+    }
+  }
+
+  // ── Close request ─────────────────────────────────────
+  async function closeRequest(requestId) {
+    if (!confirm('Mark this request as closed? A Teams notification will be sent to confirm closure.')) return;
+    try {
+      const res = await fetch(`${FLASK_API}/admin/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId })
+      });
+      if (!res.ok) throw new Error();
+      loadRequests();
+    } catch {
+      alert('Could not close request. Make sure you are on VPN.');
+    }
+  }
+
+  // ── Force stop running pipeline ───────────────────────
+  async function forceStopRequest(requestId) {
+    if (!confirm('Force stop this pipeline? The request will be reset to Pending Review. Any partially generated files will remain on disk.')) return;
+    try {
+      const res = await fetch(`${FLASK_API}/admin/force-stop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId })
+      });
+      if (!res.ok) throw new Error();
+      loadRequests();
+    } catch {
+      alert('Could not stop the pipeline. Make sure you are on VPN.');
+    }
+  }
+
+  // ── Re-run request ────────────────────────────────────
+  async function rerunRequest(requestId) {
+    if (!confirm('This will reset the request to Pending and allow you to re-approve with updated queries. Continue?')) return;
+    try {
+      const res = await fetch(`${FLASK_API}/admin/rerun`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId })
+      });
+      if (!res.ok) throw new Error();
+      // Clear saved SQL edits so fresh queries load
+      delete sqlEdits[requestId];
+      ['ga','linkedin','marketo'].forEach(src => {
+        const el = document.getElementById(`sqltxt-${requestId}-${src}`);
+        if (el) { delete el.dataset.locked; el.style.borderColor = ''; el.style.boxShadow = ''; }
+      });
+      loadRequests();
+    } catch {
+      alert('Could not reset request. Make sure you are on VPN.');
+    }
+  }
+
+  // ── Mark complete manually ────────────────────────────
+  async function markComplete(requestId) {
+    if (!confirm('Mark this request as complete without re-running queries?')) return;
+    try {
+      const res = await fetch(`${FLASK_API}/admin/mark-complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId })
+      });
+      if (!res.ok) throw new Error();
+      loadRequests();
+    } catch {
+      alert('Could not update request. Make sure you are on VPN.');
+    }
+  }
+  // ── Reset SQL edits to original ───────────────────────
+  function resetSqlEdits(requestId) {
+    if (!confirm('Reset all queries to their original auto-generated values?')) return;
+    delete sqlEdits[requestId];
+    ['ga','linkedin','marketo'].forEach(src => {
+      const el = document.getElementById(`sqltxt-${requestId}-${src}`);
+      if (el) {
+        delete el.dataset.locked;
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }
+    });
+    loadRequests();
+  }
+
+  function downloadSelected(requestId) {
+    const checkboxes = document.querySelectorAll(`#dl-list-${requestId} input[type="checkbox"]:checked`);
+    if (checkboxes.length === 0) {
+      alert('Please select at least one file to download.');
+      return;
+    }
+    checkboxes.forEach((cb, i) => {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = cb.dataset.url;
+        a.download = cb.dataset.filename || 'report.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 500); // stagger downloads 500ms apart
+    });
+  }
+  function copyFeedbackBtn(event) {
+    const btn = event.target;
+    const requestId = btn.dataset.reqid;
+    const userName = btn.dataset.name || '';
+    const userEmail = btn.dataset.email || '';
+    copyFeedback(event, requestId, userName, userEmail);
+  }
+
+  function copyFeedback(event, requestId, userName, userEmail) {
+    const checkedFields = [...document.querySelectorAll(`#modify-${requestId} .fc-item input:checked`)]
+      .map(cb => `  • ${cb.value}`).join('\n');
+    const note = document.getElementById('modifynote-' + requestId).value.trim();
+
+    if (!checkedFields && !note) {
+      alert('Please select at least one field or add feedback before copying.');
+      return;
+    }
+
+    const formUrl = 'https://ma-reports.bain.com/';
+    let message = `Hi ${userName || 'there'},\n\nYour report request (${requestId}) needs a small update before we can run it.\n`;
+    if (checkedFields) message += `\nPlease review and correct the following fields:\n${checkedFields}\n`;
+    if (note) message += `\nAdditional notes: ${note}\n`;
+    message += `\nPlease update your request here and resubmit — enter your Request ID to pre-fill your previous inputs:\n${formUrl}\n\nThanks,\nMarketing Analytics Team`;
+
+    // Bulletproof copy — works on HTTP and all browsers
+    const btn = event.target;
+    const ta = document.createElement('textarea');
+    ta.value = message;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:2em;height:2em;padding:0;border:none;outline:none;box-shadow:none;background:transparent;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, 99999); // for mobile
+    try {
+      document.execCommand('copy');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '✓ Copied to clipboard!';
+      btn.style.background = 'var(--green)';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2500);
+    } catch (err) {
+      // Last resort — show the message in a prompt so they can manually copy
+      window.prompt('Copy this message (Ctrl+C):', message);
+    }
+    document.body.removeChild(ta);
+  }
+  async function sendModification(requestId) {
+    const note = document.getElementById('modifynote-' + requestId).value.trim();
+    const flaggedFields = [...document.querySelectorAll(`#modify-${requestId} .fc-item input:checked`)]
+      .map(cb => cb.value);
+    if (!flaggedFields.length && !note) {
+      alert('Please select at least one field or add feedback.');
+      return;
+    }
+    const statusEl = document.getElementById('actStatus-' + requestId);
+    try {
+      const res = await fetch(`${FLASK_API}/admin/modify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, note, flaggedFields })
+      });
+      if (!res.ok) throw new Error();
+      statusEl.className = 'action-status ok';
+      statusEl.textContent = '✓ Marked as Needs Modification. Email sent to user.';
+      document.getElementById('card-' + requestId).classList.remove('pending');
+      document.getElementById('card-' + requestId).classList.add('needs_modification');
+      modifyOpenCards.delete(requestId);
+      delete modifyState[requestId];
+      // Change button text to show sent
+      const markBtn = document.getElementById('markModBtn-' + requestId);
+      if (markBtn) {
+        markBtn.textContent = '✓ Modification Sent';
+        markBtn.style.background = '#555';
+        markBtn.disabled = true;
+      }
+    } catch {
+      statusEl.className = 'action-status err';
+      statusEl.textContent = '⚠ Could not reach server. Make sure you\'re on VPN.';
+    }
+  }
+
+  // ── Demo data (shown before Flask is live) ───────────
+  const DEMO_REQUESTS = [
+    {
+      requestId: 'REQ-DEMO001', reportName: 'Global Payments Report 2025', status: 'pending',
+      submittedAt: new Date(Date.now() - 900000).toISOString(),
+      user: { name: 'Priya Sharma', email: 'priya.sharma@bain.com' },
+      landingUrl: 'https://www.bain.com/insights/global-payments-report-2025',
+      period: { type: 'rolling', days: 30 }, dataSources: ['GA','Marketo'],
+      segments: ['Financial Services','Technology'],
+      generatedQueries: {
+        ga: "SELECT date, Page_title, Page, Channel, url, pagePath, screenPageViews\nFROM   #ABC1\nWHERE  pagePath LIKE '%global-payments-report-2025%'\n  AND  date BETWEEN '2025-05-10' AND '2025-06-09'\nORDER  BY date;",
+        marketo: "SELECT DISTINCT [Contact Record ID], [Full Name], [Job Title], [Job Level], [Company Name]\nFROM   MarketingSF.dbo.ClientEngagement_master_2025_TI\nWHERE  [Report Base Name] LIKE '%global-payments-report-2025%'\n  AND  [Report Year] = '2025'\n  AND  ActivityDate BETWEEN '2025-05-10' AND '2025-06-09';"
+      }
+    },
+    {
+      requestId: 'REQ-DEMO002', reportName: 'Asia Tech Outlook', status: 'completed',
+      submittedAt: new Date(Date.now() - 86400000).toISOString(),
+      user: { name: 'Rahul Mehta', email: 'rahul.mehta@bain.com' },
+      landingUrl: 'https://www.bain.com/insights/asia-tech-outlook',
+      period: { type: 'rolling', days: 60 }, dataSources: ['GA','LinkedIn','Marketo'],
+      segments: ['Technology'],
+      generatedQueries: { ga: "SELECT * FROM #ABC1 WHERE pagePath LIKE '%asia-tech%';" },
+      excelUrl: '#', pptUrl: '#',
+      downloadLinks: { ga: { url: '#', rows: 0, filename: 'demo_ga.csv' } }
+    }
+  ];
+
+  // Auto-refresh every 30 seconds — skips if user is actively typing
+  setInterval(() => {
+    if (document.getElementById('mainApp').style.display !== 'none' && !isTyping) loadRequests();
+  }, 30000);
+</script>
+</body>
+</html>
