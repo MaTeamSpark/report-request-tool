@@ -488,7 +488,7 @@
 
     // Email must be Bain
     const email = document.getElementById('userEmail').value.trim();
-    if (!email.includes('@bain.com')) {
+    if (!email.toLowerCase().includes('@bain.com')) {
       showStatus('error', 'Please use your <strong>Bain email address</strong>.');
       return false;
     }
