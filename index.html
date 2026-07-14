@@ -196,66 +196,20 @@
         <label class="cb-pill"><input type="checkbox" value="Marketo" checked /> Marketo</label>
         <label class="cb-pill"><input type="checkbox" value="LinkedIn" checked /> LinkedIn</label>
       </div>
-    </div>
-
-    <div class="field">
-      <label class="field-label">Data segmentation <span class="req">*</span></label>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;">
-        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
-          <input type="radio" name="sliceBy" value="Industries" checked style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
-          Industries
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
-          <input type="radio" name="sliceBy" value="Capabilities" style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
-          Capabilities
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
-          <input type="radio" name="sliceBy" value="Sectors" style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
-          Sectors
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
-          <input type="radio" name="sliceBy" value="Priority Groups" style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
-          Priority Groups
-        </label>
-      </div>
+      <p style="margin-top:14px;margin-bottom:4px;font-size:13px;color:#222;"><strong>Note:</strong> The 2026 Full Priority Account List will be used to filter and prioritise data in your report.</p>
     </div>
   </div>
 
-  <!-- Slide 2 -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-icon">🏢</div>
-      <h2>Account Reach Overview</h2>
-    </div>
-    <div class="field">
-      <label class="field-label">Priority account list <span class="req">*</span></label>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
-        <label style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--brand);border-radius:8px;cursor:pointer;background:#fff8f8;">
-          <input type="radio" name="accountListOption" id="accountDefault" value="default" checked onchange="toggleAccountOption(this)" style="margin-top:2px;accent-color:var(--brand);" />
-          <div>
-            <div style="font-weight:600;font-size:14px;color:var(--text);">Use 2026 Full Priority Account List</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Default list — no upload needed</div>
-          </div>
-        </label>
-        <label style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-input);" id="uploadOptionLabel">
-          <input type="radio" name="accountListOption" id="accountUpload" value="upload" onchange="toggleAccountOption(this)" style="margin-top:2px;accent-color:var(--brand);" />
-          <div style="width:100%;">
-            <div style="font-weight:600;font-size:14px;color:var(--text);">Upload your Priority Account List</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Upload a CSV or Excel file with your own list</div>
-            <div id="accountUploadArea" style="display:none;margin-top:12px;">
-              <div id="uploadTemplateHint" style="background:#F8F5F0;border-left:3px solid var(--brand);border-radius:4px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#444;line-height:1.6;">
-                <strong>Please use the standard template only.</strong><br>
-                <span style="color:#CC0000;">★ Mandatory fields to fill:</span> <strong>Priority Company Name</strong> &amp; <span id="segmentationHint"></span><br>
-                <a href="https://ma-reports.bain.com/templates/PA_List_Template.xlsx" download style="display:inline-block;margin-top:6px;color:var(--brand);font-weight:600;font-size:12px;text-decoration:none;">⬇ Download blank template</a>
-              </div>
-              <input type="file" id="accountFile" accept=".csv,.xlsx,.xls" />
-              <p class="field-hint" style="margin-top:4px;">Accepted: .csv, .xlsx, .xls</p>
-            </div>
-          </div>
-        </label>
-      </div>
+  <!-- Account list option hidden — default 2026 list always used -->
+  <input type="hidden" id="accountDefault" name="accountListOption" value="default" />
+  <input type="hidden" id="accountUpload" value="upload" />
+  <div id="uploadOptionLabel" style="display:none;">
+    <div id="accountUploadArea" style="display:none;">
+      <div id="uploadTemplateHint"></div>
+      <input type="file" id="accountFile" accept=".csv,.xlsx,.xls" />
     </div>
   </div>
+  <input type="hidden" id="sliceByHidden" value="Industries" />
 
   <!-- Submit -->
   <div class="submit-area">
@@ -333,7 +287,6 @@
     if (!hintEl) return;
     const map = {
       'Industries':     '<strong>Priority Group</strong> &amp; <strong>Industry</strong>',
-      'Capabilities':   '<strong>Priority Group</strong> &amp; <strong>Capability</strong>',
       'Sectors':        '<strong>Priority Group</strong> &amp; <strong>Sector</strong>',
       'Priority Groups':'<strong>Priority Group</strong>',
     };
@@ -416,33 +369,45 @@
     if (sources.includes('Marketo')) {
       const MK_COLS = ['[Contact Record ID]', '[Full Name]', '[Job Title]', '[Job Level]',
         '[Company Name]', '[Group Name]', '[Company Industry]', '[Sector]', '[Priority]'];
+      const MK_COLS_FINAL = [...MK_COLS, 'Total_Webvisits'];
       const urlConditions = urlPaths.map(u => `        url LIKE '%${u}%'`).join('\n        OR ');
+      const groupBy = '[Contact Record ID],[Full Name],[Job Title],[Job Level],[Company Name],[Group Name],[Company Industry],[Sector],[Priority],ActivityDate,url';
 
       const startYear = parseInt(startDate.split('-')[0]);
       const endYear   = parseInt(endDate.split('-')[0]);
 
       if (startYear === endYear) {
         // Same year — single table
-        queries.marketo = `SELECT DISTINCT ${MK_COLS.join(', ')}\nFROM MarketingSF.dbo.ClientEngagement_master_${startYear}_TI\nWHERE (\n${urlConditions}\n    )\n    AND ActivityDate BETWEEN '${startDate}' AND '${endDate}';`;
+        queries.marketo = [
+          `SELECT DISTINCT ${MK_COLS.join(', ')},SUM(MAX(Webvisits)) OVER (PARTITION BY [Contact Record ID]) AS Total_Webvisits`,
+          `FROM MarketingSF.dbo.ClientEngagement_master_${startYear}_TI`,
+          'WHERE (',
+          urlConditions,
+          '    )',
+          `    AND ActivityDate BETWEEN '${startDate}' AND '${endDate}'`,
+          `GROUP BY ${groupBy};`
+        ].join('\n');
       } else {
         // Different years — CTE with UNION ALL, latest year preferred
         const latestYearStart = `${endYear}-01-01`;
         const earliestYearEnd = `${startYear}-12-31`;
         queries.marketo = [
           'WITH combined AS (',
-          `    SELECT ${MK_COLS.join(', ')}, ${endYear} AS src_year`,
+          `    SELECT ${MK_COLS.join(', ')},SUM(MAX(Webvisits)) OVER (PARTITION BY [Contact Record ID]) AS Total_Webvisits, ${endYear} AS src_year`,
           `    FROM MarketingSF.dbo.ClientEngagement_master_${endYear}_TI`,
           '    WHERE (',
           urlConditions,
           '    )',
           `    AND ActivityDate BETWEEN '${latestYearStart}' AND '${endDate}'`,
+          `    GROUP BY ${groupBy}`,
           '    UNION ALL',
-          `    SELECT ${MK_COLS.join(', ')}, ${startYear} AS src_year`,
+          `    SELECT ${MK_COLS.join(', ')},SUM(MAX(Webvisits)) OVER (PARTITION BY [Contact Record ID]) AS Total_Webvisits, ${startYear} AS src_year`,
           `    FROM MarketingSF.dbo.ClientEngagement_master_${startYear}_TI`,
           '    WHERE (',
           urlConditions,
           '    )',
           `    AND ActivityDate BETWEEN '${startDate}' AND '${earliestYearEnd}'`,
+          `    GROUP BY ${groupBy}`,
           '),',
           'ranked AS (',
           '    SELECT *,',
@@ -452,7 +417,7 @@
           '           ) AS rn',
           '    FROM combined',
           ')',
-          `SELECT ${MK_COLS.join(', ')}`,
+          `SELECT ${MK_COLS_FINAL.join(', ')}`,
           'FROM ranked',
           'WHERE rn = 1;'
         ].join('\n');
@@ -606,7 +571,8 @@
         : { type: 'from_publish', days: parseInt(period), startDate: dateRange.startDate, endDate: dateRange.endDate },
       dateRange,
       dataSources: sources,
-      sliceBy: document.querySelector('input[name="sliceBy"]:checked')?.value || 'Industries',
+      sliceBy: 'Industries',  // Default — segmentation field hidden
+      slide2: { accountListOption: 'default' },  // Always default list
       segments: [],
       slide1: {},
       slide2: {
