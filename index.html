@@ -61,8 +61,6 @@
   .toggle input:checked + .toggle-track { background: var(--brand); }
   .toggle-track::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
   .toggle input:checked + .toggle-track::before { transform: translateX(18px); }
-  .yoy-extra { display: none; margin-top: 10px; }
-  .yoy-extra.show { display: block; }
   .tag-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .tag { display: inline-flex; align-items: center; gap: 6px; background: var(--brand-light); color: var(--brand-dark); border: 1px solid rgba(204,0,0,0.25); border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 500; }
   .tag button { background: none; border: none; cursor: pointer; color: var(--brand); font-size: 16px; line-height: 1; padding: 0 2px; }
@@ -194,33 +192,31 @@
     <div class="field">
       <label class="field-label">Data sources <span class="req">*</span></label>
       <div class="checkbox-group">
-        <label class="cb-pill"><input type="checkbox" value="GA" /> Google Analytics</label>
-        <label class="cb-pill"><input type="checkbox" value="Marketo" /> Marketo</label>
-        <label class="cb-pill"><input type="checkbox" value="LinkedIn" /> LinkedIn</label>
+        <label class="cb-pill"><input type="checkbox" value="GA" checked /> Google Analytics</label>
+        <label class="cb-pill"><input type="checkbox" value="Marketo" checked /> Marketo</label>
+        <label class="cb-pill"><input type="checkbox" value="LinkedIn" checked /> LinkedIn</label>
       </div>
     </div>
 
     <div class="field">
-      <label class="field-label">LinkedIn campaign names (one per line) <span class="req">*</span></label>
-      <textarea id="linkedinCampaign" placeholder="e.g. Global Payments 2025 - APAC&#10;Global Payments 2025 - EMEA" style="min-height:80px;"></textarea>
-      <p class="field-hint">Used to filter LinkedIn data by campaign name.</p>
-    </div>
-
-    <div class="field">
-      <label class="field-label">YoY comparison</label>
-      <div class="toggle-row">
-        <div class="toggle-info">
-          <strong>Compare with prior year</strong>
-          <small>Uses the same time window from the previous year</small>
-        </div>
-        <label class="toggle">
-          <input type="checkbox" id="yoyToggle" onchange="toggleYoY(this)" />
-          <span class="toggle-track"></span>
+      <label class="field-label">Data segmentation <span class="req">*</span></label>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;">
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
+          <input type="radio" name="sliceBy" value="Industries" checked style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
+          Industries
         </label>
-      </div>
-      <div class="yoy-extra" id="yoyExtra">
-        <label class="field-label" style="margin-top:10px;">Prior year URLs (one per line)</label>
-        <textarea id="yoyUrls" placeholder="https://www.bain.com/insights/.../2024-report"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
+          <input type="radio" name="sliceBy" value="Capabilities" style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
+          Capabilities
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
+          <input type="radio" name="sliceBy" value="Sectors" style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
+          Sectors
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border:1px solid var(--border);border-radius:20px;cursor:pointer;font-size:13px;font-weight:500;">
+          <input type="radio" name="sliceBy" value="Priority Groups" style="accent-color:var(--brand);" onchange="updateSegmentationHint()" />
+          Priority Groups
+        </label>
       </div>
     </div>
   </div>
@@ -229,17 +225,35 @@
   <div class="card">
     <div class="card-header">
       <div class="card-icon">🏢</div>
-      <h2>Slide 2 — Account Reach Overview</h2>
+      <h2>Account Reach Overview</h2>
     </div>
     <div class="field">
-      <label class="field-label">Priority account list</label>
-      <p class="field-hint" style="margin-bottom:8px;">Paste company names, or upload a CSV/Excel file.</p>
-      <textarea id="accountList" placeholder="Company A&#10;Company B&#10;Company C" style="min-height:90px;"></textarea>
-    </div>
-    <div class="field">
-      <label class="field-label">Or upload account list</label>
-      <input type="file" id="accountFile" accept=".csv,.xlsx,.xls" />
-      <p class="field-hint">Accepted: .csv, .xlsx, .xls</p>
+      <label class="field-label">Priority account list <span class="req">*</span></label>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:2px solid var(--brand);border-radius:8px;cursor:pointer;background:#fff8f8;">
+          <input type="radio" name="accountListOption" id="accountDefault" value="default" checked onchange="toggleAccountOption(this)" style="margin-top:2px;accent-color:var(--brand);" />
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--text);">Use 2026 Full Priority Account List</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Default list — no upload needed</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-input);" id="uploadOptionLabel">
+          <input type="radio" name="accountListOption" id="accountUpload" value="upload" onchange="toggleAccountOption(this)" style="margin-top:2px;accent-color:var(--brand);" />
+          <div style="width:100%;">
+            <div style="font-weight:600;font-size:14px;color:var(--text);">Upload your Priority Account List</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Upload a CSV or Excel file with your own list</div>
+            <div id="accountUploadArea" style="display:none;margin-top:12px;">
+              <div id="uploadTemplateHint" style="background:#F8F5F0;border-left:3px solid var(--brand);border-radius:4px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#444;line-height:1.6;">
+                <strong>Please use the standard template only.</strong><br>
+                <span style="color:#CC0000;">★ Mandatory fields to fill:</span> <strong>Priority Company Name</strong> &amp; <span id="segmentationHint"></span><br>
+                <a href="https://ma-reports.bain.com/templates/PA_List_Template.xlsx" download style="display:inline-block;margin-top:6px;color:var(--brand);font-weight:600;font-size:12px;text-decoration:none;">⬇ Download blank template</a>
+              </div>
+              <input type="file" id="accountFile" accept=".csv,.xlsx,.xls" />
+              <p class="field-hint" style="margin-top:4px;">Accepted: .csv, .xlsx, .xls</p>
+            </div>
+          </div>
+        </label>
+      </div>
     </div>
   </div>
 
@@ -266,7 +280,7 @@
 
 <script>
   // ── Config ──────────────────────────────────────────
-  const FLASK_API = 'http://10.193.41.9:5000/submit-request';
+  const FLASK_API = 'https://ma-reports.bain.com/submit-request';
 
   // ── State ──────────────────────────────────────────
   const tags = {}; // kept for compatibility
@@ -293,8 +307,37 @@
     document.getElementById('chapterUrlField').style.display = sel.value === 'specific' ? 'block' : 'none';
   }
 
-  function toggleYoY(el) {
-    document.getElementById('yoyExtra').classList.toggle('show', el.checked);
+  function toggleAccountOption(radio) {
+    const uploadArea = document.getElementById('accountUploadArea');
+    const uploadLabel = document.getElementById('uploadOptionLabel');
+    const defaultLabel = document.getElementById('accountDefault').parentElement;
+    if (radio.value === 'upload') {
+      uploadArea.style.display = 'block';
+      uploadLabel.style.border = '2px solid var(--brand)';
+      uploadLabel.style.background = '#fff8f8';
+      defaultLabel.style.border = '1px solid var(--border)';
+      defaultLabel.style.background = 'var(--bg-input)';
+      updateSegmentationHint();
+    } else {
+      uploadArea.style.display = 'none';
+      uploadLabel.style.border = '1px solid var(--border)';
+      uploadLabel.style.background = 'var(--bg-input)';
+      defaultLabel.style.border = '2px solid var(--brand)';
+      defaultLabel.style.background = '#fff8f8';
+    }
+  }
+
+  function updateSegmentationHint() {
+    const sliceBy = document.querySelector('input[name="sliceBy"]:checked')?.value || 'Industries';
+    const hintEl = document.getElementById('segmentationHint');
+    if (!hintEl) return;
+    const map = {
+      'Industries':     '<strong>Priority Group</strong> &amp; <strong>Industry</strong>',
+      'Capabilities':   '<strong>Priority Group</strong> &amp; <strong>Capability</strong>',
+      'Sectors':        '<strong>Priority Group</strong> &amp; <strong>Sector</strong>',
+      'Priority Groups':'<strong>Priority Group</strong>',
+    };
+    hintEl.innerHTML = map[sliceBy] || '<strong>Priority Group</strong>';
   }
 
   // ── Tags (kept for potential future use) ──────────────────────────────────
@@ -325,11 +368,9 @@
   function buildReportFilter() {
     const url = document.getElementById('landingUrl').value.trim();
     const name = document.getElementById('reportName').value.trim();
-    const campaignLines = document.getElementById('linkedinCampaign').value.trim().split('\n').filter(Boolean);
     const chapterScope = document.getElementById('chapterScope').value;
 
-    // GA: always include landing page URL
-    // Add chapter URLs only if scope is "specific"
+    // Build all URLs — landing page always included
     let allUrls = [url];
     if (chapterScope === 'specific') {
       const chapterUrls = document.getElementById('chapterUrls').value.trim().split('\n').filter(Boolean);
@@ -337,39 +378,29 @@
     }
     allUrls = allUrls.filter(Boolean);
 
-    const pathFilters = allUrls.map(u => {
-      const stripped = u.trim().replace(/^https?:\/\/[^\/]+/, '').replace(/\/$/, '');
-      return `pagePath LIKE '%${stripped}%'`;
-    });
+    // Strip domain only — keep trailing slash for EPI_Article_HB matching
+    const urlPaths = allUrls.map(u => u.trim().replace(/^https?:\/\/[^\/]+/, '').replace(/\/$/, ''));
+
+    // GA pagePath filters
+    const pathFilters = urlPaths.map(p => `pagePath LIKE '%${p}%'`);
     const gaFilter = pathFilters.length > 1
       ? `(${pathFilters.join('\n  OR ')})`
       : pathFilters[0] || `pagePath LIKE '%${url}%'`;
 
-    // LinkedIn filter — OR for multiple campaign names
-    let linkedinFilter;
-    if (campaignLines.length > 1) {
-      linkedinFilter = `(${campaignLines.map(c => `[*Campaign Name] LIKE '%${c.trim()}%'`).join('\n  OR  ')})`;
-    } else if (campaignLines.length === 1) {
-      linkedinFilter = `[*Campaign Name] LIKE '%${campaignLines[0].trim()}%'`;
-    } else {
-      linkedinFilter = `[*Campaign Name] LIKE '%${name}%'`;
-    }
-
-    // Strip year (4-digit number) from end of report name for Marketo filter
-    const nameForMarketo = name.replace(/\s*\b(19|20)\d{2}\b\s*$/, '').trim();
-
-    return { gaFilter, linkedinFilter, reportName: `%${nameForMarketo}%` };
+    return { gaFilter, urlPaths };
   }
 
-  function buildLinkedInQuery(linkedinFilter, startStr, endStr) {
-    return `SELECT date,\n       pivot_type,\n       pivot_value,\n       REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n       campaign_id, impressions, clicks, totalEngagements, pivot_name,\n       campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n       [*Objective], [*Ad Format], [**Audience String],\n       campaign_start_date, campaign_end_date, source_file\nFROM   MarketingSF.dbo.Linkedin_Demographics_Ti_V3\nWHERE  pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n  AND  ${linkedinFilter}\n  AND  DATE BETWEEN '${startStr}' AND '${endStr}'\n  AND  totalEngagements <> 0;`;
+  function buildLinkedInQuery(urlFilters, startStr, endStr) {
+    const urlConditions = urlFilters.map(u => `        Ad_destination_url LIKE '%${u}%'`).join('\n        OR ');
+    const campaignConditions = urlFilters.map(u => `        Ad_destination_url LIKE '%${u}%'`).join('\n        OR ');
+    return `WITH CampaignNames AS (\n    SELECT DISTINCT [Ad_campaign_name]\n    FROM marketingsf.dbo.LinkedIn_Adperformance_MAIN_Ti\n    WHERE (\n${urlConditions}\n    )\n    AND Ad_Date BETWEEN '${startStr}' AND '${endStr}'\n)\nSELECT date, pivot_type, pivot_value,\n    REVERSE(LEFT(REVERSE(pivot_value), CHARINDEX(':', REVERSE(pivot_value)) - 1)) AS pivot_value_extracted,\n    campaign_id, impressions, clicks, totalEngagements, pivot_name,\n    campaign_group_id, campaign_group_name, [*Campaign Name], [*Campaign Status],\n    [*Objective], [*Ad Format], [**Audience String], campaign_start_date, campaign_end_date\nFROM MarketingSF.dbo.Linkedin_Demographics_Main_TI\nWHERE pivot_type IN ('MEMBER_SENIORITY','MEMBER_INDUSTRY','MEMBER_COMPANY','MEMBER_JOB_TITLE')\n    AND DATE BETWEEN '${startStr}' AND '${endStr}'\n    AND totalEngagements <> 0\n    AND [*Campaign Name] IN (SELECT [Ad_campaign_name] FROM CampaignNames)\nORDER BY totalEngagements DESC;`;
   }
 
   function generateQueries(sources, dateRange, reportFilter) {
     const queries = {};
     const { startDate, endDate } = dateRange;
-    const { gaFilter, linkedinFilter, reportName } = reportFilter;
-    const year = new Date(startDate).getFullYear();
+    const { gaFilter, urlPaths } = reportFilter;
+    const year = startDate.split('-')[0];
 
     if (sources.includes('GA')) {
       const GA_COLS = ['date', 'Page_title', 'Page', 'url', 'pagePath', 'screenPageViews',
@@ -379,39 +410,95 @@
     }
 
     if (sources.includes('LinkedIn')) {
-      const period = document.getElementById('periodValue').value;
-
-      // Parse date parts directly to avoid timezone shifts
-      const [sy, sm] = startDate.split('-').map(Number);
-      const [ey, em] = endDate.split('-').map(Number);
-
-      // Start = 1st of publish month
-      const liStartStr = `${sy}-${String(sm).padStart(2,'0')}-01`;
-
-      let liEndStr;
-      if (period === 'custom') {
-        // Custom — 1st of month after end date's month
-        let endMonth = em + 1;
-        let endYear  = ey;
-        if (endMonth > 12) { endMonth = 1; endYear += 1; }
-        liEndStr = `${endYear}-${String(endMonth).padStart(2,'0')}-01`;
-      } else {
-        // 30 days = 1 month ahead, 60 = 2 months, 90 = 3 months
-        const monthsToAdd = Math.round(parseInt(period) / 30);
-        let endMonth = sm + monthsToAdd;
-        let endYear  = sy;
-        if (endMonth > 12) { endMonth -= 12; endYear += 1; }
-        liEndStr = `${endYear}-${String(endMonth).padStart(2,'0')}-01`;
-      }
-
-      queries.linkedin = buildLinkedInQuery(linkedinFilter, liStartStr, liEndStr);
+      queries.linkedin = buildLinkedInQuery(urlPaths, startDate, endDate);
     }
 
     if (sources.includes('Marketo')) {
       const MK_COLS = ['[Contact Record ID]', '[Full Name]', '[Job Title]', '[Job Level]',
         '[Company Name]', '[Group Name]', '[Company Industry]', '[Sector]', '[Priority]'];
-      queries.marketo = `SELECT DISTINCT ${MK_COLS.join(', ')}\nFROM   MarketingSF.dbo.ClientEngagement_master_2025_TI\nWHERE  [Report Base Name] LIKE '${reportName}'\n  AND  [Report Year] = '${year}'\n  AND  ActivityDate BETWEEN '${startDate}' AND '${endDate}';`;
+      const urlConditions = urlPaths.map(u => `        url LIKE '%${u}%'`).join('\n        OR ');
+
+      const startYear = parseInt(startDate.split('-')[0]);
+      const endYear   = parseInt(endDate.split('-')[0]);
+
+      if (startYear === endYear) {
+        // Same year — single table
+        queries.marketo = `SELECT DISTINCT ${MK_COLS.join(', ')}\nFROM MarketingSF.dbo.ClientEngagement_master_${startYear}_TI\nWHERE (\n${urlConditions}\n    )\n    AND ActivityDate BETWEEN '${startDate}' AND '${endDate}';`;
+      } else {
+        // Different years — CTE with UNION ALL, latest year preferred
+        const latestYearStart = `${endYear}-01-01`;
+        const earliestYearEnd = `${startYear}-12-31`;
+        queries.marketo = [
+          'WITH combined AS (',
+          `    SELECT ${MK_COLS.join(', ')}, ${endYear} AS src_year`,
+          `    FROM MarketingSF.dbo.ClientEngagement_master_${endYear}_TI`,
+          '    WHERE (',
+          urlConditions,
+          '    )',
+          `    AND ActivityDate BETWEEN '${latestYearStart}' AND '${endDate}'`,
+          '    UNION ALL',
+          `    SELECT ${MK_COLS.join(', ')}, ${startYear} AS src_year`,
+          `    FROM MarketingSF.dbo.ClientEngagement_master_${startYear}_TI`,
+          '    WHERE (',
+          urlConditions,
+          '    )',
+          `    AND ActivityDate BETWEEN '${startDate}' AND '${earliestYearEnd}'`,
+          '),',
+          'ranked AS (',
+          '    SELECT *,',
+          '           ROW_NUMBER() OVER (',
+          '               PARTITION BY [Contact Record ID]',
+          '               ORDER BY src_year DESC',
+          '           ) AS rn',
+          '    FROM combined',
+          ')',
+          `SELECT ${MK_COLS.join(', ')}`,
+          'FROM ranked',
+          'WHERE rn = 1;'
+        ].join('\n');
+      }
     }
+
+    // URL Mapping query — always generated from submitted URLs
+    // Add trailing slash for EPI_Article_HB matching
+    const urlValuesWithSlash = urlPaths.map((p, i) => {
+      const withSlash = p.endsWith('/') ? p : p + '/';
+      return `            ('${withSlash}', ${i})`;
+    }).join(',\n');
+    queries.url_mapping = [
+      'SELECT',
+      '    [Chapters URL],',
+      '    CASE',
+      "        WHEN url_type = 'LP' THEN 'LP'",
+      "        WHEN url_type = 'Webinar' THEN 'Webinar'",
+      "        ELSE 'Ch. ' + CAST(",
+      '            ROW_NUMBER() OVER (',
+      '                PARTITION BY CASE WHEN url_type = \'Chapter\' THEN 1 ELSE 0 END',
+      '                ORDER BY seq',
+      '            ) AS varchar(10))',
+      '    END AS [Chp/LP],',
+      '    [Page Title],',
+      '    [Publish Year]',
+      'FROM (',
+      '    SELECT',
+      '        ca.clean_url AS [Chapters URL],',
+      '        CASE',
+      "            WHEN ca.clean_url LIKE '/insights/topics/%' THEN 'LP'",
+      "            WHEN ca.clean_url LIKE '%-webinar/' THEN 'Webinar'",
+      "            ELSE 'Chapter'",
+      '        END AS url_type,',
+      '        u.seq,',
+      '        Page_title AS [Page Title],',
+      '        [Publish Year]',
+      '    FROM MarketingSF.dbo.EPI_Article_HB',
+      "    CROSS APPLY (SELECT REPLACE(url, 'https://www.bain.com', '') AS clean_url) ca",
+      '    INNER JOIN (',
+      '        VALUES',
+      urlValuesWithSlash,
+      '    ) u(url_path, seq) ON u.url_path = ca.clean_url',
+      ') t',
+      'ORDER BY seq;'
+    ].join('\n');
 
     return queries;
   }
@@ -424,8 +511,7 @@
       { id: 'userEmail',   label: 'Your email' },
       { id: 'reportName',  label: 'Report name' },
       { id: 'landingUrl',  label: 'Primary landing page URL' },
-      { id: 'publishDate', label: 'Report publish date' },
-      { id: 'linkedinCampaign', label: 'LinkedIn campaign name(s)' }
+      { id: 'publishDate', label: 'Report publish date' }
     ];
     for (const f of checks) {
       if (!document.getElementById(f.id).value.trim()) {
@@ -475,13 +561,14 @@
       }
     }
 
-    // Slide 2 — either account list text OR file upload required
-    const accountList = document.getElementById('accountList').value.trim();
-    const accountFile = document.getElementById('accountFile').files.length > 0;
-    if (!accountList && !accountFile) {
-      showStatus('error', 'Please provide a <strong>priority account list</strong> — either paste company names or upload a file.');
-      document.getElementById('accountList').focus();
-      return false;
+    // Slide 2 — if upload option selected, file is required
+    const accountOption = document.querySelector('input[name="accountListOption"]:checked')?.value;
+    if (accountOption === 'upload') {
+      const accountFile = document.getElementById('accountFile').files.length > 0;
+      if (!accountFile) {
+        showStatus('error', 'Please upload a <strong>Priority Account List file</strong>.');
+        return false;
+      }
     }
 
     return true;
@@ -519,16 +606,12 @@
         : { type: 'from_publish', days: parseInt(period), startDate: dateRange.startDate, endDate: dateRange.endDate },
       dateRange,
       dataSources: sources,
-      linkedinCampaign: document.getElementById('linkedinCampaign').value.trim().split('\n').filter(Boolean),
-      yoy: {
-        enabled: document.getElementById('yoyToggle').checked,
-        priorYearUrls: document.getElementById('yoyUrls').value.trim().split('\n').filter(Boolean)
-      },
+      sliceBy: document.querySelector('input[name="sliceBy"]:checked')?.value || 'Industries',
       segments: [],
       slide1: {},
       slide2: {
-        accountList: document.getElementById('accountList').value.trim().split('\n').filter(Boolean),
-        segmentLabels: []
+        accountListOption: document.querySelector('input[name="accountListOption"]:checked')?.value || 'default',
+        accountList: []
       },
       generatedQueries: generateQueries(sources, dateRange, buildReportFilter())
     };
@@ -633,19 +716,8 @@
           cb.checked = (r.dataSources || []).includes(cb.value);
         });
 
-        // YoY
-        const yoyEl = document.getElementById('yoyToggle');
-        yoyEl.checked = r.yoy?.enabled || false;
-        toggleYoY(yoyEl);
-        if (r.yoy?.priorYearUrls?.length) document.getElementById('yoyUrls').value = r.yoy.priorYearUrls.join('\n');
 
-        // LinkedIn campaigns
-        const liEl = document.getElementById('linkedinCampaign');
-        if (r.linkedinCampaign) {
-          liEl.value = Array.isArray(r.linkedinCampaign)
-            ? r.linkedinCampaign.join('\n')
-            : r.linkedinCampaign;
-        }
+
 
         // Account list (Slide 2)
         const accountEl = document.getElementById('accountList');
@@ -663,8 +735,6 @@
               'Chapter URLs':                   ['chapterUrls'],
               'Report publish date':            ['publishDate'],
               'Analysis period (custom dates)': ['endDate'],
-              'LinkedIn campaign names':        ['linkedinCampaign'],
-              'Prior year URLs (YoY)':          ['yoyUrls'],
               'Priority account list':          ['accountList'],
             };
             flagged.forEach(field => {
@@ -716,10 +786,10 @@
 
     try {
       const fileInput = document.getElementById('accountFile');
+      const accountOption = document.querySelector('input[name="accountListOption"]:checked')?.value;
       let response;
 
-      if (fileInput.files.length > 0) {
-        // Send as multipart with file
+      if (accountOption === 'upload' && fileInput.files.length > 0) {
         const formData = new FormData();
         formData.append('payload', JSON.stringify(payload));
         formData.append('accountFile', fileInput.files[0]);
