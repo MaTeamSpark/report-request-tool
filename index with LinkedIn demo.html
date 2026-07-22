@@ -412,7 +412,30 @@
       const GA_COLS = ['date', 'Page_title', 'Page', 'url', 'pagePath', 'screenPageViews',
         '[CRM Company Group Name]', '[CRM Industry]', '[Firm Priority]',
         '[CRM Industry Sector]', '[Company Group_excluding "Other"]', 'Channel'];
-      queries.ga = `SELECT ${GA_COLS.join(', ')}\nFROM   [MarketingSF].[dbo].[GA_ChannelSources_Pages_CompanyMapped_EPIMapped_TI]\nWHERE  ${gaFilter}\n  AND  date BETWEEN '${startDate}' AND '${endDate}'\nORDER  BY date;`;
+      queries.ga = [
+        'WITH GA AS (',
+        `    SELECT ${GA_COLS.join(', ')}`,
+        '    FROM [MarketingSF].[dbo].[GA_ChannelSources_Pages_CompanyMapped_EPIMapped_TI]',
+        `    WHERE  ${gaFilter}`,
+        `      AND  date BETWEEN '${startDate}' AND '${endDate}'`,
+        '),',
+        'MappingDedup AS (',
+        '    SELECT [DB Company Name], [CRM Company Group Name], [Firm Priority],',
+        '           ROW_NUMBER() OVER (',
+        '               PARTITION BY [DB Company Name]',
+        '               ORDER BY [Firm Priority] DESC',
+        '           ) AS rn',
+        '    FROM [Marketing].[dbo].[GA_CRMManualMappingWithCompanyID]',
+        ')',
+        'SELECT g.date, g.Page_title, g.Page, g.url, g.pagePath, g.screenPageViews,',
+        '       g.[CRM Company Group Name], g.[CRM Industry], g.[Firm Priority],',
+        '       g.[CRM Industry Sector], g.[Company Group_excluding "Other"], g.Channel,',
+        '       p.[DB Company Name],p.[CRM Company Group Name] AS [GRACE Group Name],p.[Firm Priority]',
+        'FROM GA g',
+        'LEFT JOIN MappingDedup p',
+        '    ON g.[CRM Company Group Name] = p.[DB Company Name]',
+        '   AND p.rn = 1;'
+      ].join('\n');
     }
 
     if (sources.includes('LinkedIn')) {
