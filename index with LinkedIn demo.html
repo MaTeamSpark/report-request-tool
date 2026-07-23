@@ -430,7 +430,7 @@
         'SELECT g.date, g.Page_title, g.Page, g.url, g.pagePath, g.screenPageViews,',
         '       g.[CRM Company Group Name], g.[CRM Industry], g.[Firm Priority],',
         '       g.[CRM Industry Sector], g.[Company Group_excluding "Other"], g.Channel,',
-        '       p.[DB Company Name],p.[CRM Company Group Name] AS [GRACE Group Name],p.[Firm Priority]',
+        '       p.[DB Company Name] AS [DB Company Name M],p.[CRM Company Group Name] AS [GRACE Group Name M],p.[Firm Priority] AS [Firm Priority M]',
         'FROM GA g',
         'LEFT JOIN MappingDedup p',
         '    ON g.[CRM Company Group Name] = p.[DB Company Name]',
